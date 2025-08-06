@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/salesforce-sync-app.io/static/css/main.645179e6.css",
-    "main.js": "/salesforce-sync-app.io/static/js/main.29cf1137.js",
+    "main.css": "/salesforce-sync-app.io/static/css/main.7d023530.css",
+    "main.js": "/salesforce-sync-app.io/static/js/main.c490cbe3.js",
     "static/js/453.f0cf6e45.chunk.js": "/salesforce-sync-app.io/static/js/453.f0cf6e45.chunk.js",
     "index.html": "/salesforce-sync-app.io/index.html",
-    "main.645179e6.css.map": "/salesforce-sync-app.io/static/css/main.645179e6.css.map",
-    "main.29cf1137.js.map": "/salesforce-sync-app.io/static/js/main.29cf1137.js.map",
+    "main.7d023530.css.map": "/salesforce-sync-app.io/static/css/main.7d023530.css.map",
+    "main.c490cbe3.js.map": "/salesforce-sync-app.io/static/js/main.c490cbe3.js.map",
     "453.f0cf6e45.chunk.js.map": "/salesforce-sync-app.io/static/js/453.f0cf6e45.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.645179e6.css",
-    "static/js/main.29cf1137.js"
+    "static/css/main.7d023530.css",
+    "static/js/main.c490cbe3.js"
   ]
 }
