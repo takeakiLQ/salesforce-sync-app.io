@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import "./Withdrawn.css";
 import HeaderMenu from "./HeaderMenu";
+import LocationSelectorModal from "./LocationSelectorModal";
 import { useNavigate } from "react-router-dom";
+import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 
 // ...既存のロジック...
 
@@ -129,21 +131,16 @@ export default function Withdrawn() {
   const [selectedPrefs, setSelectedPrefs] = useState([]); // 都道府県：複数
   const [selectedCities, setSelectedCities] = useState([]); // 市区町村：複数
 
+  const [locationModalType, setLocationModalType] = useState(null); // 都道府県/市区町村モーダル
+
   // 都道府県リスト
   const allPrefList = useMemo(() => Object.keys(areaMap), [areaMap]);
 
   // 市区町村候補
-  const cityCandidates = useMemo(() => {
-    const set = new Set();
-    const targets = selectedPrefs.length ? selectedPrefs : allPrefList;
-    for (const pref of targets) {
-      const cities = areaMap[pref] || [];
-      for (const c of cities) {
-        set.add(c);
-      }
-    }
-    return Array.from(set);
-  }, [areaMap, selectedPrefs, allPrefList]);
+  const cityCandidates = useMemo(
+    () => buildCityCandidates(areaMap, selectedPrefs),
+    [areaMap, selectedPrefs]
+  );
 
   // 離脱パートナー取得
   const fetchExited = async () => {
@@ -282,7 +279,7 @@ export default function Withdrawn() {
 
   // モーダル
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState(null); // 'pref'|'city'|'dai'|'chu'|'sho'
+  const [modalType, setModalType] = useState(null); // 'dai' | 'chu' | 'sho'
   const [modalTempSelection, setModalTempSelection] = useState([]);
   const [modalSearch, setModalSearch] = useState("");
 
@@ -295,25 +292,15 @@ export default function Withdrawn() {
 
   /* ====== 都道府県マスタ ====== */
   useEffect(() => {
-    const fetchArea = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("NO_TOKEN");
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/都道府県マスタ!B2:C`;
-        const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
-        const map = {};
-        (res.data.values || []).forEach(([pref, city]) => {
-          if (!map[pref]) map[pref] = [];
-          map[pref].push(city);
-        });
-        setAreaMap(map);
-      } catch (err) {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetchPrefectureCityMap({ token })
+      .then(setAreaMap)
+      .catch((err) => {
         console.error("fetchAreaMap error:", err);
         setErrorMessage("エリア情報の取得に失敗しました。再認証してください。");
         setNeedReauth(true);
-      }
-    };
-    fetchArea();
+      });
   }, []);
 
   /* ====== 離脱パートナー取得（初期表示は空） ====== */
@@ -323,8 +310,8 @@ export default function Withdrawn() {
 
   // 都道府県の変更で候補外の市区町村を自動除外
   useEffect(() => {
-    setSelectedCities((prev) => prev.filter((c) => cityCandidates.includes(c)));
-  }, [cityCandidates]);
+    setSelectedCities((prev) => sanitizeCitySelection(areaMap, selectedPrefs, prev));
+  }, [areaMap, selectedPrefs]);
 
   /* ====== 並び替え ====== */
   const sortPartners = (list, key, order) => {
@@ -458,45 +445,49 @@ const handleLogout = () => {
 
   /* ====== モーダル ====== */
   const openModal = (type) => {
+    if (type === "pref" || type === "city") {
+      setLocationModalType(type);
+      return;
+    }
     setModalType(type);
     setModalSearch("");
-    if (type === "pref") setModalTempSelection(selectedPrefs);
-    if (type === "city") setModalTempSelection(selectedCities);
     if (type === "dai") setModalTempSelection(selectedDai);
-    if (type === "chu") setModalTempSelection(selectedChu); // フル文言の配列
+    if (type === "chu") setModalTempSelection(selectedChu);
     if (type === "sho") setModalTempSelection(selectedSho);
     setModalOpen(true);
   };
 
+  const closeLocationModal = () => {
+    setLocationModalType(null);
+  };
+
+  const handleApplyLocationModal = (values) => {
+    if (!locationModalType) return;
+    if (locationModalType === "pref") {
+      setSelectedPrefs(values);
+      setSelectedCities((prev) => sanitizeCitySelection(areaMap, values, prev));
+    } else if (locationModalType === "city") {
+      setSelectedCities(values);
+    }
+    setLocationModalType(null);
+  };
+
   const applyModal = () => {
-    if (modalType === "pref") setSelectedPrefs(modalTempSelection);
-    if (modalType === "city") setSelectedCities(modalTempSelection);
     if (modalType === "dai") setSelectedDai(modalTempSelection);
-    if (modalType === "chu") setSelectedChu(modalTempSelection); // そのままフル文言を保持
+    if (modalType === "chu") setSelectedChu(modalTempSelection);
     if (modalType === "sho") setSelectedSho(modalTempSelection);
     setModalOpen(false);
   };
 
   const summary = (label, arr) => `${label}${arr.length ? `（${arr.length}件選択）` : "（未選択）"}`;
 
-  /* ====== モーダル中の候補 ====== */
   const modalTitle =
-    modalType === "pref" ? "都道府県を選択"
-    : modalType === "city" ? "市区町村を選択"
-    : modalType === "dai" ? "離脱判断（大区分）"
+    modalType === "dai" ? "離脱判断（大区分）"
     : modalType === "chu" ? "離脱判断（中区分）"
     : modalType === "sho" ? "離脱判断（小区分）" : "";
 
   const modalOptions = useMemo(() => {
     const q = modalSearch.trim();
-    if (modalType === "pref") {
-      const base = allPrefList;
-      return q ? base.filter((x) => x.includes(q)) : base;
-    }
-    if (modalType === "city") {
-      const base = cityCandidates;
-      return q ? base.filter((x) => x.includes(q)) : base;
-    }
     if (modalType === "dai") {
       const base = Q_DAI_OPTIONS;
       return q ? base.filter((x) => x.includes(q)) : base;
@@ -511,7 +502,7 @@ const handleLogout = () => {
       return q ? base.filter((x) => x.includes(q)) : base;
     }
     return [];
-  }, [modalType, modalSearch, allPrefList, cityCandidates]);
+  }, [modalType, modalSearch]);
 
   const toggleTemp = (val, checked) => {
     setModalTempSelection((prev) => (checked ? [...prev, val] : prev.filter((x) => x !== val)));
@@ -531,9 +522,20 @@ const handleLogout = () => {
       const values = opt.values; // フル文言の配列
       const allIncluded = values.every((v) => modalTempSelection.includes(v));
       const anyIncluded = values.some((v) => modalTempSelection.includes(v));
+      const optionStyle =
+        allIncluded
+          ? { ...styles.optionItem, ...styles.optionItemActive }
+          : anyIncluded
+          ? { ...styles.optionItem, ...styles.optionItemPartial }
+          : styles.optionItem;
 
       return (
-        <label key={opt.label} style={styles.optionItem} className="chip" title={values.join(" / ")}>
+        <label
+          key={opt.label}
+          style={optionStyle}
+          className="chip"
+          title={values.join(" / ")}
+        >
           <input
             type="checkbox"
             checked={allIncluded}
@@ -543,8 +545,8 @@ const handleLogout = () => {
             {opt.label}
             {values.length > 1 && (
               <span style={{ fontSize: 12, opacity: 0.7, marginLeft: 6 }}>
-                （{values.length} 種）
-                {anyIncluded && !allIncluded ? "・一部選択" : ""}
+                （{values.length} 件）
+                {anyIncluded && !allIncluded ? "※一部選択" : ""}
               </span>
             )}
           </span>
@@ -552,12 +554,20 @@ const handleLogout = () => {
       );
     }
 
-    // それ以外は通常の単値チェック
+    // それ以外は通常の単一チェック
     const val = opt;
     const checked = modalTempSelection.includes(val);
+    const optionStyle = checked
+      ? { ...styles.optionItem, ...styles.optionItemActive }
+      : styles.optionItem;
+
     return (
-      <label key={val} style={styles.optionItem} className="chip">
-        <input type="checkbox" checked={checked} onChange={(e) => toggleTemp(val, e.target.checked)} />
+      <label key={val} style={optionStyle} className="chip">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => toggleTemp(val, e.target.checked)}
+        />
         <span>{val}</span>
       </label>
     );
@@ -984,6 +994,32 @@ const handleLogout = () => {
         {/* サマリ */}
         <div style={styles.selectionSummary}>選択中：{modalTempSelection.length} 件</div>
       </Modal>
+      <LocationSelectorModal
+        key={locationModalType || "none"}
+        isOpen={Boolean(locationModalType)}
+        title={
+          locationModalType === "pref"
+            ? "都道府県を選択"
+            : locationModalType === "city"
+            ? "市区町村を選択"
+            : ""
+        }
+        options={
+          locationModalType === "pref" ? allPrefList : cityCandidates
+        }
+        selectedValues={
+          locationModalType === "pref"
+            ? selectedPrefs
+            : selectedCities
+        }
+        onClose={closeLocationModal}
+        onApply={handleApplyLocationModal}
+        searchPlaceholder={
+          locationModalType === "pref"
+            ? "都道府県名を検索"
+            : "市区町村名を検索"
+        }
+      />
     </>
   );
 }
@@ -1052,6 +1088,21 @@ const styles = {
     padding: "6px 10px",
     background: "#fff",
     whiteSpace: "nowrap",
+    transition: "background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease",
+  },
+  optionItemActive: {
+    background: "#e8f2ff",
+    borderColor: "#93c5fd",
+    boxShadow: "0 0 0 1px rgba(59, 130, 246, 0.35)",
+    color: "#1d4ed8",
+    fontWeight: 600,
+  },
+  optionItemPartial: {
+    background: "#f3f4ff",
+    borderColor: "#c7d2fe",
+    boxShadow: "0 0 0 1px rgba(99, 102, 241, 0.3)",
+    color: "#3730a3",
+    fontWeight: 600,
   },
   selectionSummary: {
     marginTop: 8,

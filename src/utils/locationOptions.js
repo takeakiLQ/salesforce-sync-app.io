@@ -1,98 +1,55 @@
-// D:\React\salesforce_sync\src\components\AvailabilityPage.js
 
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import './AvailabilityPage.css';
+import axios from "axios";
 
-const AvailabilityPage = () => {
-  const [prefectures, setPrefectures] = useState([]);
-  const [cities, setCities] = useState([]);
-  const [allSubRegions, setAllSubRegions] = useState({});
-  const [selectedPref, setSelectedPref] = useState('');
-  const [selectedCity, setSelectedCity] = useState('');
-  const token = localStorage.getItem('token');
+const DEFAULT_SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
 
-  useEffect(() => {
-    const fetchPrefectureData = async () => {
-      try {
-        const res = await axios.get(
-          `https://sheets.googleapis.com/v4/spreadsheets/${process.env.REACT_APP_SPREADSHEET_ID}/values/都道府県マスタ!B2:C`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+export async function fetchPrefectureCityMap({
+  token,
+  spreadsheetId = DEFAULT_SPREADSHEET_ID,
+} = {}) {
+  if (!token) {
+    throw new Error("TOKEN_REQUIRED");
+  }
 
-        const values = res.data.values || [];
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/都道府県マスタ!B2:C`;
+  const response = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-        // 連想配列形式で市区町村をグループ化
-        const subRegions = {};
-        values.forEach(([pref, city]) => {
-          if (!subRegions[pref]) {
-            subRegions[pref] = [];
-          }
-          subRegions[pref].push(city);
-        });
+  const areaMap = {};
+  const values = response.data?.values || [];
+  values.forEach(([prefecture, city]) => {
+    if (!prefecture) return;
+    if (!areaMap[prefecture]) {
+      areaMap[prefecture] = [];
+    }
+    if (city && !areaMap[prefecture].includes(city)) {
+      areaMap[prefecture].push(city);
+    }
+  });
 
-        const uniquePrefs = Object.keys(subRegions);
+  return areaMap;
+}
 
-        setAllSubRegions(subRegions);
-        setPrefectures(uniquePrefs);
-      } catch (error) {
-        console.error('都道府県マスタの取得に失敗:', error);
+export function buildCityCandidates(areaMap = {}, selectedPrefs = []) {
+  const result = [];
+  const seen = new Set();
+  const targets = selectedPrefs.length ? selectedPrefs : Object.keys(areaMap);
+  targets.forEach((pref) => {
+    (areaMap[pref] || []).forEach((city) => {
+      if (city && !seen.has(city)) {
+        seen.add(city);
+        result.push(city);
       }
-    };
+    });
+  });
+  return result;
+}
 
-    fetchPrefectureData();
-  }, [token]);
-
-  const handlePrefChange = (e) => {
-    const selected = e.target.value;
-    setSelectedPref(selected);
-    setSelectedCity('');
-    setCities(allSubRegions[selected] || []);
-  };
-
-  const handleCityChange = (e) => {
-    setSelectedCity(e.target.value);
-  };
-
-  return (
-    <div className="availability-page">
-      <h2>空枠情報</h2>
-
-      <div className="card">
-        <label>都道府県</label>
-        <select value={selectedPref} onChange={handlePrefChange}>
-          <option value="">選択してください</option>
-          {prefectures.map((pref) => (
-            <option key={pref} value={pref}>
-              {pref}
-            </option>
-          ))}
-        </select>
-
-        <label>市区町村</label>
-        <select value={selectedCity} onChange={handleCityChange} disabled={!selectedPref}>
-          <option value="">選択してください</option>
-          {cities.map((city) => (
-            <option key={city} value={city}>
-              {city}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {selectedPref && selectedCity && (
-        <div className="result">
-          <p>
-            選択された地域: <strong>{selectedPref} {selectedCity}</strong>
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default AvailabilityPage;
+export function sanitizeCitySelection(areaMap = {}, selectedPrefs = [], cities = []) {
+  const validSet = new Set(buildCityCandidates(areaMap, selectedPrefs));
+  if (!validSet.size) {
+    return [];
+  }
+  return (cities || []).filter((city) => validSet.has(city));
+}

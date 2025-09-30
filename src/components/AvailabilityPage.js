@@ -6,6 +6,8 @@ import "./AvailabilityPage.css";
 import { useNavigate } from "react-router-dom";
 import ReactSlider from "react-slider";
 import HeaderMenu from "./HeaderMenu";
+import LocationSelectorModal from "./LocationSelectorModal";
+import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 
 const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
 // const SHEET_PARTNER = "パートナー情報"; // 未使用のためコメントアウト
@@ -84,32 +86,6 @@ const LastWorkField = ({ status, lastWorked, lastProject, formatDate }) => {
   );
 };
 
-/* ===== 共通モーダル ===== */
-function Modal({ open, title, children, onClose, onApply }) {
-  if (!open) return null;
-  return (
-    <div style={styles.backdrop}>
-      <div style={styles.modal}>
-        <div style={styles.modalHeader}>
-          <div style={{ fontWeight: 700 }}>{title}</div>
-          <button className="clear-btn" onClick={onClose} aria-label="close">
-            ✕
-          </button>
-        </div>
-        <div style={styles.modalContent}>{children}</div>
-        <div style={styles.modalFooter}>
-          <button className="clear-btn" onClick={onClose}>
-            キャンセル
-          </button>
-          <button className="search" onClick={onApply}>
-            適用
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ===== Pagination（重複排除） ===== */
 const Pagination = ({ currentPage, totalPages, onChange }) => {
   if (totalPages <= 1) return null;
@@ -176,6 +152,8 @@ const AvailabilityPage = () => {
   const [selectedPrefs, setSelectedPrefs] = useState([]); // 都道府県（複数）
   const [selectedDistricts, setSelectedDistricts] = useState([]); // 市区町村（複数）
 
+  const [locationModalType, setLocationModalType] = useState(null); // 都道府県/市区町村モーダル
+
   // お気に入り
   const [favoriteIds, setFavoriteIds] = useState([]);
   
@@ -203,10 +181,6 @@ const AvailabilityPage = () => {
   };
 
   // モーダル
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState(null); // 'pref' | 'city'
-  const [modalTempSelection, setModalTempSelection] = useState([]);
-  const [modalSearch, setModalSearch] = useState("");
   /* ▲ */
 
   const [weekSelections, setWeekSelections] = useState([]);
@@ -313,37 +287,28 @@ const AvailabilityPage = () => {
 
   /* ===== 都道府県マスタ ===== */
   useEffect(() => {
-    const fetchAreaMap = async () => {
-      const token = localStorage.getItem("token");
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/都道府県マスタ!B2:C`;
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetchPrefectureCityMap({ token })
+      .then(setAreaMap)
+      .catch((error) => {
+        console.error("都道府県マスタの取得に失敗:", error);
       });
-      const map = {};
-      (res.data?.values || []).forEach(([pref, city]) => {
-        if (!map[pref]) map[pref] = [];
-        map[pref].push(city);
-      });
-      setAreaMap(map);
-    };
-    fetchAreaMap();
   }, []);
 
   // 候補生成（県＝全キー／市区町村＝選択県の合算。未選択時は全県合算）
   const allPrefList = useMemo(() => Object.keys(areaMap), [areaMap]);
-  const cityCandidates = useMemo(() => {
-    const set = new Set();
-    const targets = selectedPrefs.length ? selectedPrefs : allPrefList;
-    targets.forEach((pref) => (areaMap[pref] || []).forEach((c) => set.add(c)));
-    return Array.from(set);
-  }, [areaMap, selectedPrefs, allPrefList]);
+  const cityCandidates = useMemo(
+    () => buildCityCandidates(areaMap, selectedPrefs),
+    [areaMap, selectedPrefs]
+  );
 
   // 県変更時：候補外の市区町村は自動除外
   useEffect(() => {
     setSelectedDistricts((prev) =>
-      prev.filter((c) => cityCandidates.includes(c))
+      sanitizeCitySelection(areaMap, selectedPrefs, prev)
     );
-  }, [cityCandidates]);
+  }, [areaMap, selectedPrefs]);
 
   /* ===== 並び替え ===== */
   // useCallback版は削除。下の通常定義のみ残す。
@@ -510,63 +475,27 @@ const AvailabilityPage = () => {
   };
 
   /* ===== モーダル制御 ===== */
-  const openModal = (type) => {
-    setModalType(type);
-    setModalSearch("");
-    if (type === "pref") setModalTempSelection(selectedPrefs);
-    if (type === "city") setModalTempSelection(selectedDistricts);
-    setModalOpen(true);
+  const openLocationModal = (type) => {
+    setLocationModalType(type);
   };
 
-  const applyModal = () => {
-    if (modalType === "pref") {
-      const next = modalTempSelection.slice();
-      setSelectedPrefs(next);
-      // 県変更に伴い、市区町村の選択は候補外を自動除外
-      const nextCityCandidates = (() => {
-        const set = new Set();
-        const targets = next.length ? next : allPrefList;
-        targets.forEach((pref) =>
-          (areaMap[pref] || []).forEach((c) => set.add(c))
-        );
-        return Array.from(set);
-      })();
-      setSelectedDistricts((prev) =>
-        prev.filter((c) => nextCityCandidates.includes(c))
-      );
+  const closeLocationModal = () => {
+    setLocationModalType(null);
+  };
+
+  const handleApplyLocationModal = (values) => {
+    if (!locationModalType) return;
+    if (locationModalType === "pref") {
+      setSelectedPrefs(values);
+      setSelectedDistricts((prev) => sanitizeCitySelection(areaMap, values, prev));
+    } else if (locationModalType === "city") {
+      setSelectedDistricts(values);
     }
-    if (modalType === "city") setSelectedDistricts(modalTempSelection.slice());
-    setModalOpen(false);
+    setLocationModalType(null);
   };
 
   const summary = (label, arr) =>
     `${label}${arr.length ? `（${arr.length}件選択）` : "（未選択）"}`;
-
-  const modalOptions = useMemo(() => {
-    const q = modalSearch.trim();
-    if (modalType === "pref") {
-      const base = allPrefList;
-      return q ? base.filter((x) => x.includes(q)) : base;
-    }
-    if (modalType === "city") {
-      const base = cityCandidates;
-      return q ? base.filter((x) => x.includes(q)) : base;
-    }
-    return [];
-  }, [modalType, modalSearch, allPrefList, cityCandidates]);
-
-  const toggleTemp = (val, checked) => {
-    setModalTempSelection((prev) =>
-      checked ? [...prev, val] : prev.filter((x) => x !== val)
-    );
-  };
-
-  const modalTitle =
-    modalType === "pref"
-      ? "都道府県を選択"
-      : modalType === "city"
-      ? "市区町村を選択"
-      : "";
 
   // 日付フォーマッタ
   const formatDate = (dateStr) => {
@@ -630,14 +559,14 @@ const AvailabilityPage = () => {
               <button
                 className="chip-like"
                 style={styles.chip}
-                onClick={() => openModal("pref")}
+                onClick={() => openLocationModal("pref")}
               >
                 {summary("都道府県", selectedPrefs)}
               </button>
               <button
                 className="chip-like"
                 style={styles.chip}
-                onClick={() => openModal("city")}
+                onClick={() => openLocationModal("city")}
               >
                 {summary("市区町村", selectedDistricts)}
               </button>
@@ -1344,65 +1273,32 @@ const AvailabilityPage = () => {
       </div>
 
       {/* === 共通モーダル === */}
-      <Modal
-        open={modalOpen}
-        title={modalTitle}
-        onClose={() => setModalOpen(false)}
-        onApply={applyModal}
-      >
-        {/* 検索＋全選択＋クリア */}
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <input
-            type="text"
-            placeholder="候補検索（絞り込み）"
-            value={modalSearch}
-            onChange={(e) => setModalSearch(e.target.value)}
-            className="keyword-input"
-            style={{ flex: 1, minWidth: 120 }}
-          />
-          <button
-            className="clear-btn"
-            onClick={() => setModalTempSelection(modalOptions.slice())}
-          >
-            全選択
-          </button>
-          <button
-            className="clear-btn"
-            onClick={() => setModalTempSelection([])}
-          >
-            クリア
-          </button>
-        </div>
-
-        {/* 候補 */}
-        <div style={styles.optionList}>
-          {modalOptions.map((val) => {
-            const checked = modalTempSelection.includes(val);
-            return (
-              <label key={val} style={styles.optionItem} className="chip">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={(e) => toggleTemp(val, e.target.checked)}
-                />
-                <span>{val}</span>
-              </label>
-            );
-          })}
-        </div>
-
-        {/* サマリ */}
-        <div style={styles.selectionSummary}>
-          選択中：{modalTempSelection.length} 件
-        </div>
-      </Modal>
+      <LocationSelectorModal
+        key={locationModalType || "none"}
+        isOpen={Boolean(locationModalType)}
+        title={
+          locationModalType === "pref"
+            ? "都道府県を選択"
+            : locationModalType === "city"
+            ? "市区町村を選択"
+            : ""
+        }
+        options={
+          locationModalType === "pref" ? allPrefList : cityCandidates
+        }
+        selectedValues={
+          locationModalType === "pref"
+            ? selectedPrefs
+            : selectedDistricts
+        }
+        onClose={closeLocationModal}
+        onApply={handleApplyLocationModal}
+        searchPlaceholder={
+          locationModalType === "pref"
+            ? "都道府県名を検索"
+            : "市区町村名を検索"
+        }
+      />
     </>
   );
 };
@@ -1421,63 +1317,5 @@ const styles = {
     cursor: "pointer",
   },
   hint: { fontSize: 12, opacity: 0.75, marginTop: 6 },
-
-  backdrop: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.35)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 50,
-  },
-  modal: {
-    width: "min(900px, 96vw)",
-    background: "white",
-    borderRadius: 16,
-    padding: 16,
-    boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-    maxHeight: "80vh",
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  modalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  modalContent: {
-    overflow: "auto",
-    border: "1px solid #eee",
-    borderRadius: 12,
-    padding: 12,
-  },
-  modalFooter: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 8,
-  },
-  optionList: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-    gap: 8,
-  },
-  optionItem: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    border: "1px solid #e5e7eb",
-    borderRadius: 9999,
-    padding: "6px 10px",
-    background: "#fff",
-    whiteSpace: "nowrap",
-  },
-  selectionSummary: {
-    marginTop: 8,
-    fontSize: 12,
-    opacity: 0.8,
-    textAlign: "right",
-  },
 };
+
