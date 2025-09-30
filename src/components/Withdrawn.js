@@ -514,7 +514,7 @@ const handleSearch = () => {
     if (!exitedReadyRef.current) return;
     if (!pendingExitedSearchRef.current) return;
     handleSearch();
-    // eslint-disable-next-line react-hooks-exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exitedPartners]);
 
 
