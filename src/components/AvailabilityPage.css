@@ -1,0 +1,994 @@
+/* AvailabilityPage.css */
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: linear-gradient(to bottom right, #ffffff, #ecf1cc);
+  color: #333;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.availability-page {
+  padding: 8px 20px 20px;
+}
+
+.header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.hamburger {
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  background-color: transparent;
+  border: none;
+  color: #333;
+}
+
+.user-info {
+  font-size: 14px;
+  color: #555;
+  font-weight: bold;
+  background-color: #f2f2f2;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.page-title {
+  font-size: 20px;
+  margin: 0;
+}
+
+.error-message {
+  color: #b00020;
+  background-color: #ffeaea;
+  border: 1px solid #ffc2c2;
+  padding: 6px 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+}
+
+.sort-controls select {
+  padding: 6px 12px;
+  justify-content: center; 
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* カスタム並び順ボタン */
+.order-toggle {
+  padding: 6px 14px;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: #f1f1f1;
+  color: #111;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: bold;
+}
+.order-toggle:hover { background-color: #e0e0e0; }
+.order-toggle.asc { background-color: #8fbcff; }
+.order-toggle.desc { background-color: #ffafaf; }
+
+@media (max-width: 480px) {
+  .sort-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.result-count {
+  background-color: #e6f0ff;
+  border: 1px solid #0366d6;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #003366;
+  text-align: center;
+  max-width: 260px;
+  margin: 16px auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.search-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, auto));
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 24px;
+
+  padding: 24px;
+  background-color: #c0dafc;
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  margin-bottom: 32px;
+}
+
+.search-panel label {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.search-panel select,
+.search-panel input[type="text"],
+.search-panel input[type="number"],
+.search-panel textarea {
+  font-size: 16px;
+  padding: 10px;
+}
+
+.select-multibox {
+  height: 170px;
+  width: 300px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #aaa;
+  overflow-y: auto;
+  box-sizing: border-box;
+  margin-top: -10px;
+}
+
+.weekday-checkboxes {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.weekday-checkboxes label {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+}
+.weekday-checkboxes input[type="checkbox"] { display: none; }
+.weekday-checkboxes input[type="checkbox"]:checked + span {
+  background: #0366d6;
+  color: white;
+  font-weight: bold;
+}
+
+.search-panel button {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+.search-panel button:hover { opacity: 0.85; }
+button.search { background-color: #0366d6; color: white; }
+button.link { background-color: #28a745; color: white; }
+
+.partner-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.partner-card {
+  border: 1px solid #9bd4f3;
+  padding: 20px;
+  margin-bottom: 20px;
+  background: #f7f2b2;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 3800px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* お気に入り状態で背景色を変える */
+.partner-card.favorite-card {
+  background: #abd9ff; /* 淡い黄色 */
+  box-shadow: 0 0 12px rgba(8, 104, 164, 0.5);
+}
+
+.name-block {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.kana-name {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 2px;
+  line-height: 1;
+}
+
+.name-link {
+  font-size: 18px;
+  font-weight: bold;
+  color: #003366;
+  text-decoration: none;
+}
+.name-link:hover { text-decoration: underline; }
+
+.phone-link {
+  font-size: 18px;
+  font-weight: bold;
+  color: #0055aa;
+  text-decoration: none;
+}
+
+.phone-link:hover {
+  text-decoration: underline;
+  color: #003366;
+}
+
+
+
+
+.favorite-search {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background-color: #f59e0b; /* オレンジ系 */
+  color: white;
+}
+
+.favorite-search:hover {
+  background-color: #d97706;
+}
+
+
+
+/* ===============================
+   スケジュール表（横/縦 共通）
+   =============================== */
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+  table-layout: fixed;
+}
+
+/* 横向きテーブル：デフォルトはカード内に収まる */
+.schedule-table.horizontal {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* セル 共通 */
+.schedule-table th,
+.schedule-table td {
+  border: 1px solid #888;
+  text-align: center;
+  word-wrap: break-word;
+  padding: 6px;
+  min-width: clamp(28px, 3.8vw, 36px); /* PCで収めやすい幅 */
+  font-size: 13px;                      /* デフォルトは少し小さめ */
+}
+
+/* モバイル（768px以下）はスクロール可能に */
+@media (max-width: 768px) {
+  .schedule-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .schedule-table.horizontal {
+    min-width: 900px; /* スクロール前提で広めに確保 */
+  }
+
+  .schedule-table th,
+  .schedule-table td {
+    min-width: 40px; /* モバイルは見やすい幅 */
+    font-size: 12px; /* モバイルは文字を小さめに */
+    padding: 4px;
+  }
+}
+
+
+
+
+.active-cell { background-color: rgb(151, 151, 147); }
+.inactive-cell { background-color: #fff; }
+
+/* 選択レンジの可視化（重なり優先） */
+.matching-cell {
+  outline: 4px solid rgba(5, 64, 241, 0.934);
+  position: relative;
+  z-index: 1;
+}
+
+/* 軸セル（先頭セル）の共通見た目（後で横/縦で上書き） */
+.schedule-table thead th { color: #333; font-weight: 700; }
+.schedule-table tbody td:first-child {
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #888;
+  padding: 8px;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .schedule-table { font-size: 12px; }
+  .schedule-table th, .schedule-table td {
+    padding: 4.5px;
+    min-width: clamp(28px, 5.2vw, 54px);
+    line-height: 1.2; 
+  }
+}
+
+/* ===============================
+   横向き（曜/時）カラーリング
+   - thead: 時間帯バンド
+   - tbody 先頭列: 曜日カラー
+   =============================== */
+.schedule-table.horizontal thead th:nth-child(1) { background-color: #ffffff; }
+
+/* 22〜5時（グレー）: thead（タイトル分+1のため 00時=2列目） */
+.schedule-table.horizontal thead th:nth-child(2),
+.schedule-table.horizontal thead th:nth-child(3),
+.schedule-table.horizontal thead th:nth-child(4),
+.schedule-table.horizontal thead th:nth-child(5),
+.schedule-table.horizontal thead th:nth-child(6),
+.schedule-table.horizontal thead th:nth-child(7),
+.schedule-table.horizontal thead th:nth-child(24),
+.schedule-table.horizontal thead th:nth-child(25) {
+  background-color: #c0c0c0;
+}
+
+/* 早朝/夕方（ライトブルー）: 6〜8時 と 19〜21時 */
+.schedule-table.horizontal thead th:nth-child(8),
+.schedule-table.horizontal thead th:nth-child(9),
+.schedule-table.horizontal thead th:nth-child(10),
+.schedule-table.horizontal thead th:nth-child(21),
+.schedule-table.horizontal thead th:nth-child(22),
+.schedule-table.horizontal thead th:nth-child(23) {
+  background-color: hsl(192, 93%, 84%);
+}
+
+/* 日中（イエロー）: 9〜18時相当（既存定義に合わせて 11〜20 を使用） */
+.schedule-table.horizontal thead th:nth-child(11),
+.schedule-table.horizontal thead th:nth-child(12),
+.schedule-table.horizontal thead th:nth-child(13),
+.schedule-table.horizontal thead th:nth-child(14),
+.schedule-table.horizontal thead th:nth-child(15),
+.schedule-table.horizontal thead th:nth-child(16),
+.schedule-table.horizontal thead th:nth-child(17),
+.schedule-table.horizontal thead th:nth-child(18),
+.schedule-table.horizontal thead th:nth-child(19),
+.schedule-table.horizontal thead th:nth-child(20) {
+  background-color: #f9fc6e;
+}
+
+/* 曜日カラー（先頭列） */
+.schedule-table.horizontal tbody tr:nth-child(1) td:first-child,
+.schedule-table.horizontal tbody tr:nth-child(2) td:first-child,
+.schedule-table.horizontal tbody tr:nth-child(3) td:first-child,
+.schedule-table.horizontal tbody tr:nth-child(4) td:first-child,
+.schedule-table.horizontal tbody tr:nth-child(5) td:first-child {
+  background-color: #f9fc6e;  /* 月〜金 */
+}
+.schedule-table.horizontal tbody tr:nth-child(6) td:first-child {
+  background-color: #d6eaff;  /* 土 */
+}
+.schedule-table.horizontal tbody tr:nth-child(7) td:first-child {
+  background-color: #ffe6e6;  /* 日 */
+}
+
+/* ===============================
+   縦向き（時/曜）カラーリング
+   - thead: 曜日カラー（列ヘッダ）
+   - tbody 先頭列: 時間帯バンド（行ヘッダ）
+   =============================== */
+
+/* ヘッダ1列目（タイトル） */
+.schedule-table.vertical thead th:nth-child(1) {
+  background-color: #ffffff;
+}
+
+/* 曜日カラー（ヘッダの列）:
+   1列目=タイトル, 2〜8列目= 月〜日 */
+.schedule-table.vertical thead th:nth-child(2),
+.schedule-table.vertical thead th:nth-child(3),
+.schedule-table.vertical thead th:nth-child(4),
+.schedule-table.vertical thead th:nth-child(5),
+.schedule-table.vertical thead th:nth-child(6) {
+  background-color: #f9fc6e;  /* 平日：月〜金 */
+}
+.schedule-table.vertical thead th:nth-child(7) {
+  background-color: #d6eaff;  /* 土 */
+}
+.schedule-table.vertical thead th:nth-child(8) {
+  background-color: #ffe6e6;  /* 日 */
+}
+
+/* 行ヘッダ（= 時刻）に時間帯バンドを適用
+   tbody の tr は 1=00時, 2=01時, …, 24=23時 */
+
+/* 夜間（22〜23時 & 0〜5時）→ グレー */
+.schedule-table.vertical tbody tr:nth-child(1)  td:first-child, /* 00 */
+.schedule-table.vertical tbody tr:nth-child(2)  td:first-child, /* 01 */
+.schedule-table.vertical tbody tr:nth-child(3)  td:first-child, /* 02 */
+.schedule-table.vertical tbody tr:nth-child(4)  td:first-child, /* 03 */
+.schedule-table.vertical tbody tr:nth-child(5)  td:first-child, /* 04 */
+.schedule-table.vertical tbody tr:nth-child(6)  td:first-child, /* 05 */
+.schedule-table.vertical tbody tr:nth-child(23) td:first-child, /* 22 */
+.schedule-table.vertical tbody tr:nth-child(24) td:first-child  /* 23 */ {
+  background-color: #c0c0c0;
+}
+
+/* 早朝/夕方（6〜8時 & 19〜21時）→ ライトブルー */
+.schedule-table.vertical tbody tr:nth-child(7)  td:first-child, /* 06 */
+.schedule-table.vertical tbody tr:nth-child(8)  td:first-child, /* 07 */
+.schedule-table.vertical tbody tr:nth-child(9)  td:first-child, /* 08 */
+.schedule-table.vertical tbody tr:nth-child(20) td:first-child, /* 19 */
+.schedule-table.vertical tbody tr:nth-child(21) td:first-child, /* 20 */
+.schedule-table.vertical tbody tr:nth-child(22) td:first-child  /* 21 */ {
+  background-color: hsl(192, 93%, 84%);
+}
+
+/* 日中（9〜18時相当）→ イエロー
+   ※ 横向きの 11〜20（= 9〜18時相当）に合わせ、行番号 10〜19 を採用 */
+.schedule-table.vertical tbody tr:nth-child(10) td:first-child, /* 09 */
+.schedule-table.vertical tbody tr:nth-child(11) td:first-child, /* 10 */
+.schedule-table.vertical tbody tr:nth-child(12) td:first-child, /* 11 */
+.schedule-table.vertical tbody tr:nth-child(13) td:first-child, /* 12 */
+.schedule-table.vertical tbody tr:nth-child(14) td:first-child, /* 13 */
+.schedule-table.vertical tbody tr:nth-child(15) td:first-child, /* 14 */
+.schedule-table.vertical tbody tr:nth-child(16) td:first-child, /* 15 */
+.schedule-table.vertical tbody tr:nth-child(17) td:first-child, /* 16 */
+.schedule-table.vertical tbody tr:nth-child(18) td:first-child, /* 17 */
+.schedule-table.vertical tbody tr:nth-child(19) td:first-child  /* 18 */ {
+  background-color: #f9fc6e;
+}
+
+/* =============================== */
+
+.assignment-info {
+  background: #eef;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 4px;
+}
+.assignment-info a {
+  color: #0366d6;
+  font-weight: bold;
+  text-decoration: none;
+}
+.assignment-info a:hover { text-decoration: underline; }
+
+.partner-info-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* スクロール可能にするコンテナ */
+.partner-schedule-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  overflow-x: auto; /* ここで横スクロールを許可 */
+}
+.partner-schedule-container .schedule-table {
+  max-width: 100%;
+  overflow-x: auto;
+  display: block;
+}
+
+.status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 15px;
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+}
+.status-checkbox-group {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  align-items: center;
+}
+.status-checkbox-group label,
+.strict-match-filter label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: normal;
+  cursor: pointer;
+}
+.strict-match-filter { display: flex; align-items: center; }
+
+.city-and-weekdays {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+}
+.city-and-weekdays label { flex-shrink: 0; }
+
+.weekday-checkboxes-inline {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 30px;
+  padding: 12px 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+}
+
+.city-select-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 360px; 
+  margin-top: 4%;
+}
+
+.city-and-weekdays {
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  margin-bottom: 20px;
+}
+.city-select-with-clear {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+.weekday-below {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.weekday-label { font-weight: bold; margin-bottom: 4px; }
+
+.weekday-checkboxes-inline { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+  padding: 4px 8px;
+  font-size: 13px;
+  height: 32px;
+  background-color: #cccecb96;
+  border: 1px solid #c5c3c3;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.clear-btn:hover { background-color: #757575; }
+
+.weekday-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+.weekday-presets {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.weekday-presets button {
+  padding: 6px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f1f1f1;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.weekday-presets button:hover { background-color: #868686; }
+
+/* ☰ ハンバーガーアイコン */
+.hamburger {
+  font-size: 24px;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 10px;
+  padding: 4px 8px;
+  display: inline-block;
+  background-color: transparent;
+  border: none;
+}
+
+/* メニュー全体 */
+.menu {
+  position: absolute;
+  top: 40px;
+  left: 10px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  width: 160px;
+}
+/* 通常メニューボタン（トップに戻るなど） */
+.menu-button {
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+.menu-button:hover { background-color: #f0f0f0; }
+/* ログアウト専用 */
+.menu-button.logout { background-color: #c0392b; color: white; }
+.menu-button.logout:hover { background-color: #a93226; }
+
+@media screen and (max-width: 768px) {
+  .availability-page { padding: 10px; }
+  .search-panel { grid-template-columns: 1fr; gap: 12px; }
+  .search-panel label, .status-filters { font-size: 13px; }
+  .search-panel button { padding: 8px 12px; font-size: 13px; }
+
+  .city-and-weekdays { flex-direction: column; align-items: stretch; gap: 12px; }
+  .city-select-row { flex-direction: column; align-items: stretch; }
+
+  .select-multibox { width: 100%; height: 100px; }
+  .weekday-checkboxes-inline { justify-content: flex-start; gap: 8px; }
+
+  .partner-info-grid { grid-template-columns: 1fr; }
+  .partner-schedule-container { width: 100%; }
+
+  .schedule-table { font-size: 11px; overflow-x: auto; display: block; }
+
+  .menu { width: 140px; top: 40px; left: 10px; padding: 8px; }
+  .menu-button { padding: 8px; font-size: 13px; }
+  .hamburger { font-size: 20px; padding: 4px 6px; }
+
+  h2 { font-size: 18px; }
+  .assignment-info { font-size: 13px; }
+}
+.partner-schedule-container { overflow-x: auto; }
+
+.time-range-section { margin: 30px 0 40px; }
+.time-selects-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 40px;
+  margin-top: 20px;
+}
+.time-select {
+  display: flex;
+  flex-direction: column;
+  font-size: 16px;
+  font-weight: 500;
+  align-items: center;  
+}
+.time-select select {
+  font-size: 16px;
+  padding: 8px 12px;
+  width: 130px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+  margin-top: 5px;
+  text-align: center; 
+}
+.time-slider {
+  margin: 0 auto;
+  height: 25px;
+  max-width: 600px;
+}
+.time-slider .thumb {
+  height: 24px;
+  width: 24px;
+  background-color: #007bff;
+  cursor: grab;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  top: -5px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.3);
+}
+.time-slider .track { top: 0; bottom: 0; background: #ddd; height: 14px; border-radius: 10px; }
+.time-slider .track-1 { background: #007bff; }
+.thumb-label {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  background-color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+}
+
+.weekday-checkboxes-inline .weekday-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease-in-out;
+}
+.weekday-checkboxes-inline .weekday-btn:hover {
+  background-color: #e6f0ff;
+  border-color: #007bff;
+}
+.weekday-checkboxes-inline .weekday-btn.selected {
+  background-color: #0366d6;
+  color: white;
+  border-color: #0056b3;
+  box-shadow: inset 0 0 0 1px #004b99;
+}
+.weekday-checkboxes-inline .weekday-btn input[type="checkbox"] { display: none; }
+
+.search-button-wrapper {
+  display: flex;
+  justify-items: center;  
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.search-button-wrapper .search {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background-color: #0366d6;
+  color: white;
+}
+
+.scroll-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #0366d6;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
+  z-index: 999;
+  transition: opacity 0.3s ease;
+}
+.scroll-to-top:hover { background-color: #024db0; }
+
+.info-tooltip { position: relative; display: inline-block; cursor: default; }
+.info-icon { font-size: 16px; line-height: 1; user-select: none; }
+.tooltip-content {
+  display: none;
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 280px;
+  max-width: 90vw;
+  padding: 10px;
+  background-color: #ffffff;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.info-tooltip:hover .tooltip-content { display: block; }
+
+/* 時間帯ブロックの下に余白 */
+.time-range-section { margin-bottom: 24px; }
+/* セレクト行の中も少しゆったり */
+.time-selects-row { margin-top: 10px; gap: 12px; }
+/* 年齢レンジの上にも少しだけ余白（保険） */
+.age-range-section { margin-top: 15px; }
+
+/* モバイルは少し広めに */
+@media (max-width: 640px) {
+  .time-range-section { margin-bottom: px; }
+  .time-selects-row { gap: 10px; }
+}
+
+.table-orientation-controls {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+}
+.table-orientation-controls .label { font-weight: 600; }
+.table-orientation-controls .seg {
+  padding: 6px 10px; border: 1px solid #ccc; border-radius: 8px; background: #f8f8f8;
+}
+.table-orientation-controls .seg.active {
+  background: #e9f0ff; border-color: #7da4ff; font-weight: 600;
+}
+
+/* テーブルの罫線・ホバー・ヘッダ（別テーブル用） */
+.result-table th, .result-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+.result-table thead th {
+  position: sticky; top: 0; background: #fafafa; z-index: 1;
+  font-weight: 600; white-space: nowrap;
+}
+.result-table tbody tr:hover { background: #f5faff; }
+
+/* 氏名セル内のかな表示（小さく薄く） */
+.kana-small { font-size: 12px; color: #6b7280; line-height: 1.1; margin-bottom: 2px; }
+/* 氏名リンク */
+.result-table a.name-link { color: #0b63ce; text-decoration: none; }
+.result-table a.name-link:hover { text-decoration: underline; }
+
+.presearch-hint { opacity: 0.66; text-align: center; margin-top: 20px; }
+.loading-box { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 24px 0; }
+
+.spinner {
+  width: 36px; height: 36px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: #374151; }
+
+/* ページネーション */
+.pagination {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0 24px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.page-btn:hover:not(:disabled) { background: #f3f4f6; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-btn.active {
+  background: #3b82f6; color: #fff; border-color: #3b82f6;
+}
+.page-ellipsis { padding: 0 6px; color: #6b7280; }
+
+/* 年齢入力の幅をコンパクトに */
+.age-input {
+  width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.age-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 4px rgba(74,144,226,0.5);
+}
+@media (max-width: 480px) {
+  .age-input { width: 76px; }
+}
+
+
+.favorite-btn {
+  font-size: 20px;          /* 大きく目立たせる */
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+  color: #ccc;              /* OFFのときの色 */
+}
+
+.favorite-btn.active {
+  color: #FFD700;           /* ゴールド */
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.8); /* 光らせる */
+}
+
+.favorite-btn:hover {
+  transform: scale(1.3);    /* ホバーで拡大 */
+}
+
+.favorite-btn:active {
+  transform: scale(0.9);    /* 押したときに縮む */
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+}
+.star-btn.on {
+  color: #f59e0b; /* amber */
+}
+/* 検索のソート一帯を横並びに */
+.sort-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* もし上位で label/input を block にされていたら確実に打ち消す */
+.search-panel .fav-only label,
+.search-panel .fav-only input[type="checkbox"] {
+  display: inline-block !important;
+}
+

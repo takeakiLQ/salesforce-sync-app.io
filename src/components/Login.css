@@ -1,0 +1,84 @@
+/* ================================= */
+/* フォント設定（全体）             */
+/* ================================= */
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* ================================= */
+/* ログイン画面全体                 */
+/* ================================= */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 90vh;
+  padding: 40px;
+  background: linear-gradient(to bottom right, #ffffff, #ecf1cc);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-align: center;
+}
+
+/* ================================= */
+/* ロゴ画像                         */
+/* ================================= */
+.login-logo {
+  width: 280px;
+  margin-bottom: 60px;
+  background-color: transparent;
+}
+
+/* ================================= */
+/* タイトル                         */
+/* ================================= */
+h2 {
+  margin-bottom: 20px;
+  color: #03327c;
+  font-size: 24px;
+}
+
+/* ================================= */
+/* Googleログインボタン             */
+/* ================================= */
+.google-login-button {
+  background-color: #4285F4;
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.google-login-button:hover {
+  background-color: #03327c;
+  transform: translateY(-5px);
+}
+
+/* ================================= */
+/* ローディング表示                 */
+/* ================================= */
+.loading-text {
+  margin-top: 20px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* ================================= */
+/* フェードインアニメーション       */
+/* ================================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

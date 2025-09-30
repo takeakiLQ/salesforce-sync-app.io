@@ -1,0 +1,190 @@
+/* ヘッダなどはそのまま。下はテーブル＆グラフ強化分 */
+
+.anken-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.anken-table th,
+.anken-table td {
+  border: 1px solid #e5e7eb;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.anken-table thead th {
+  background: #f8fafc;
+  font-weight: 600;
+  user-select: none;
+}
+
+.anken-table thead th.th-click {
+  cursor: pointer;
+}
+
+.anken-table thead th.th-click:hover {
+  background: #eef2f7;
+}
+
+.anken-table thead th.no-sort {
+  cursor: default;
+}
+
+.anken-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.anken-table tbody tr:hover {
+  background: #f1f7ff;
+}
+
+/* 文字折返し・右寄せ */
+.cell.wrap { white-space: normal; word-break: break-word; }
+.cell.nowrap { white-space: nowrap; }
+.cell.right { text-align: right; }
+
+/* 幅プリセット */
+.col-xs { width: 40px;  max-width: 50px; }
+.col-s  { width: 50px; max-width: 100px; }
+.col-m  { width: 160px; max-width: 200px; }
+.col-l  { width: 240px; max-width: 320px; }
+.col-xl { width: 420px; }
+
+/* リンクは細字・青・下線 */
+.name-link {
+  color: #0b69d7;
+  text-decoration: underline;
+  font-weight: 400;
+}
+
+/* グラフ */
+.chart-box {
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  flex: 1 1 0;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.charts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.bar-label {
+  width: 120px;
+  font-weight: 600;
+}
+
+.bar-container {
+  flex: 1;
+  background: #eef2f7;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-left: 8px;
+}
+
+.bar {
+  background: #4caf50;
+  height: 22px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  border-radius: 4px;
+}
+
+.bar-year { background: #1976d2; }
+.bar-dim  { opacity: 0.35; filter: grayscale(0.3); }
+
+/* クリアボタン */
+.clear-btn {
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.clear-btn:hover { background: #dfe3e8; }
+
+/* 行詳細ヘッダ */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* スピナー（既存） */
+.spinner-wrapper {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 24px;
+}
+.spinner {
+  width: 40px; height: 40px; border: 4px solid #d0d5dd; border-top-color: #1976d2;
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+.loading-text { font-size: 14px; color: #555; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+
+
+/* 折返しをしっかり効かせる */
+.anken-table .cell.wrap {
+  white-space: normal;
+  word-break: break-word;   /* 日本語の長い語もOK */
+  overflow-wrap: anywhere;  /* 英数字の長いURL/IDにも強制改行 */
+}
+
+/* リンク自体も折返し可能に */
+.name-link {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+/* ページネーション */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.page-btn {
+  padding: 6px 10px;
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.page-btn:hover:not(:disabled) { background: #f6f7f9; }
+.page-btn.active {
+  background: #e8eefc;
+  border-color: #9db5ff;
+  font-weight: 600;
+}
+.page-btn:disabled { opacity: .5; cursor: not-allowed; }
+.page-ellipsis { padding: 0 4px; color: #999; }
+.page-info { margin-left: 6px; color: #666; font-size: 12px; }
