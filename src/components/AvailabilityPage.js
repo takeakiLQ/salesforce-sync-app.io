@@ -12,6 +12,7 @@ import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } fr
 const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
 // const SHEET_PARTNER = "パートナー情報"; // 未使用のためコメントアウト
 const SHEET_ASSIGN = "稼働中案件";
+const FILTER_CACHE_KEY = "availabilityFilters_v1";
 
 const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
@@ -147,10 +148,43 @@ const Pagination = ({ currentPage, totalPages, onChange }) => {
 const PAGE_SIZE = 20;
 
 const AvailabilityPage = () => {
+  const savedFilters = React.useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(FILTER_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      console.error("Failed to read availability filters from cache", error);
+      return null;
+    }
+  }, []);
+
+  const pickArray = (key, fallback) => {
+    if (savedFilters && Array.isArray(savedFilters[key])) {
+      return [...savedFilters[key]];
+    }
+    return fallback;
+  };
+
+  const pickString = (key, fallback) => {
+    if (savedFilters && typeof savedFilters[key] === "string") {
+      return savedFilters[key];
+    }
+    return fallback;
+  };
+
+  const pickBoolean = (key, fallback) => {
+    if (savedFilters && typeof savedFilters[key] === "boolean") {
+      return savedFilters[key];
+    }
+    return fallback;
+  };
   /* ▼ 住所：モーダル＋複数選択 ▼ */
   const [areaMap, setAreaMap] = useState({}); // {pref: [city,...]}
-  const [selectedPrefs, setSelectedPrefs] = useState([]); // 都道府県（複数）
-  const [selectedDistricts, setSelectedDistricts] = useState([]); // 市区町村（複数）
+  const [selectedPrefs, setSelectedPrefs] = useState(() => pickArray("selectedPrefs", [])); // 都道府県（複数）
+  const [selectedDistricts, setSelectedDistricts] = useState(() => pickArray("selectedDistricts", [])); // 市区町村（複数）
 
   const [locationModalType, setLocationModalType] = useState(null); // 都道府県/市区町村モーダル
 
@@ -158,8 +192,8 @@ const AvailabilityPage = () => {
   const [favoriteIds, setFavoriteIds] = useState([]);
   
   // お気に入りだけで検索するフラグ
-  // eslint-disable-next-line no-unused-vars
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(() => pickBoolean("showFavoritesOnly", false));
 
   // 初期化：localStorage からお気に入りを復元
   useEffect(() => {
@@ -183,11 +217,11 @@ const AvailabilityPage = () => {
   // モーダル
   /* ▲ */
 
-  const [weekSelections, setWeekSelections] = useState([]);
-  const [timeFrom, setTimeFrom] = useState("00");
-  const [timeTo, setTimeTo] = useState("23");
-  const [statusFilter, setStatusFilter] = useState(["稼働", "未稼働"]);
-  const [strictMatch, setStrictMatch] = useState(false);
+  const [weekSelections, setWeekSelections] = useState(() => pickArray("weekSelections", []));
+  const [timeFrom, setTimeFrom] = useState(() => pickString("timeFrom", "09"));
+  const [timeTo, setTimeTo] = useState(() => pickString("timeTo", "18"));
+  const [statusFilter, setStatusFilter] = useState(() => pickArray("statusFilter", ["稼働", "未稼働"]));
+  const [strictMatch, setStrictMatch] = useState(() => pickBoolean("strictMatch", false));
 
   const [partners, setPartners] = useState([]);
   // パートナーデータ取得
@@ -221,8 +255,9 @@ const AvailabilityPage = () => {
   const [rawFilteredPartners, setRawFilteredPartners] = useState([]);
 
   // 並び替え
-  const [sortKey, setSortKey] = useState("Name");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortKey, setSortKey] = useState(() => pickString("sortKey", "Name"));
+  const [sortOrder, setSortOrder] = useState(() => pickString("sortOrder", "asc"));
+
 
   // ページング
   const [currentPage, setCurrentPage] = useState(1);
@@ -244,13 +279,57 @@ const AvailabilityPage = () => {
   );
 
   // 表の向き
-  const [tableOrientation, setTableOrientation] = useState(() =>
-    window.innerWidth <= 640 ? "vertical" : "horizontal"
-  );
+  const [tableOrientation, setTableOrientation] = useState(() => {
+    if (
+      savedFilters &&
+      (savedFilters.tableOrientation === "vertical" ||
+        savedFilters.tableOrientation === "horizontal")
+    ) {
+      return savedFilters.tableOrientation;
+    }
+    return window.innerWidth <= 640 ? "vertical" : "horizontal";
+  });
 
   // 年齢レンジ
-  const [ageMin, setAgeMin] = useState("");
-  const [ageMax, setAgeMax] = useState("");
+  const [ageMin, setAgeMin] = useState(() => pickString("ageMin", ""));
+  const [ageMax, setAgeMax] = useState(() => pickString("ageMax", ""));
+
+  useEffect(() => {
+    try {
+      const payload = {
+        selectedPrefs,
+        selectedDistricts,
+        weekSelections,
+        timeFrom,
+        timeTo,
+        ageMin,
+        ageMax,
+        statusFilter,
+        strictMatch,
+        sortKey,
+        sortOrder,
+        tableOrientation,
+        showFavoritesOnly,
+      };
+      localStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.error("Failed to cache availability filters", error);
+    }
+  }, [
+    selectedPrefs,
+    selectedDistricts,
+    weekSelections,
+    timeFrom,
+    timeTo,
+    ageMin,
+    ageMax,
+    statusFilter,
+    strictMatch,
+    sortKey,
+    sortOrder,
+    tableOrientation,
+    showFavoritesOnly,
+  ]);
 
   // ガイダンス＆ローディング
   const [hasSearched, setHasSearched] = useState(false);
@@ -400,17 +479,6 @@ const AvailabilityPage = () => {
     // お気に入り検索フラグを同期
     setShowFavoritesOnly(favoritesOnly);
 
-    // 通常はバリデーションするが、お気に入り検索の時はスキップ
-    if (!favoritesOnly) {
-      if (selectedPrefs.length === 0) {
-        setErrorMessage("都道府県を1つ以上選択してください。");
-        return;
-      }
-      if (weekSelections.length === 0) {
-        setErrorMessage("曜日を1つ以上選択してください。");
-        return;
-      }
-    }
 
     setErrorMessage("");
     setHasSearched(true);
@@ -884,6 +952,16 @@ const AvailabilityPage = () => {
                   const partnerAssignments = assignments.filter(
                     (a) => a["Partner__r.ID_18__c"] === partnerId
                   );
+                  const bringInContractType = p["bring_in_contract_type__c"];
+                  const ankenHistoryCountRaw = Number(p["Anken_Count_Rireki__c"] ?? 0);
+                  const normalizedAnkenHistoryCount = Number.isNaN(ankenHistoryCountRaw)
+                    ? 0
+                    : ankenHistoryCountRaw;
+                  const displayContractType =
+                    bringInContractType === "C契約" && normalizedAnkenHistoryCount === 0
+                      ? bringInContractType
+                      : "B契約";
+                  const vehicleShapeLabel = p["VehicleShape__c"] || "不明";
                   const formatTime = (timeStr) =>
                     timeStr ? timeStr.slice(0, 5) : "";
 
@@ -1047,10 +1125,7 @@ const AvailabilityPage = () => {
                                   : "inherit",
                               }}
                             >
-                              {"【" +
-                                p["ContractType__c"] +
-                                "】 " +
-                                p["VehicleShape__c"] || "不明"}
+                              {`【${displayContractType}】 ${vehicleShapeLabel}`}
                             </strong>
                           </p>
 
@@ -1319,4 +1394,3 @@ const styles = {
   },
   hint: { fontSize: 12, opacity: 0.75, marginTop: 6 },
 };
-
