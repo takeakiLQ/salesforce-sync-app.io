@@ -806,6 +806,7 @@ const AvailabilityPage = () => {
                 <option value="ApprovalDate__c">承認日</option>
                 <option value="Now_Age__c">年齢</option>
                 <option value="Address__c">住所</option>
+                <option value="Gender__c">性別</option>
                 <option value="最終稼働日">最終稼働日</option>
                 <option value="favorite">お気に入り</option>
               </select>

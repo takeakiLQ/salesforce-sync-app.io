@@ -680,6 +680,7 @@ const handleLogout = () => {
                 <option value="ExitDate__c">離脱日</option>
                 <option value="Name">名前</option>
                 <option value="Now_Age__c">年齢</option>
+                <option value="Gender__c">性別</option>
                 <option value="ApprovalDate__c">承認日</option>
                 <option value="最終稼働日">最終稼働日</option>
                 <option value="Address__c">住所</option>
@@ -795,7 +796,7 @@ const handleLogout = () => {
 
                     <th onClick={() => toggleSort("Name")} style={styles.thClickable}>氏名{sortCaret("Name")}</th>
                     <th onClick={() => toggleSort("Now_Age__c")} style={styles.thClickable}>年齢{sortCaret("Now_Age__c")}</th>
-                    <th>性別</th>
+                    <th onClick={() => toggleSort("Gender__c")} style={styles.thClickable}>性別{sortCaret("Gender__c")}</th>
                     <th onClick={() => toggleSort("Address__c")} style={styles.thClickable}>住所{sortCaret("Address__c")}</th>
                     <th>携帯</th>
                     <th onClick={() => toggleSort("ApprovalDate__c")} style={styles.thClickable}>承認日{sortCaret("ApprovalDate__c")}</th>
