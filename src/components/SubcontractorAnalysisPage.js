@@ -56,6 +56,13 @@ const SubcontractorAnalysisPage = () => {
     return isNaN(n) ? 0 : n;
   };
 
+  const normalizeText = (value) =>
+    (value ?? "")
+      .toString()
+      .normalize("NFKC")
+      .toLowerCase()
+      .trim();
+
   // 金額フォーマット
   const formatMoney = (v) => {
     const n = toNumber(v);
@@ -86,6 +93,8 @@ const SubcontractorAnalysisPage = () => {
     "全主管 × 全経過年数 の協力会社案件"
   );
   const [selectedList, setSelectedList] = useState([]);
+  const [partnerKeyword, setPartnerKeyword] = useState("");
+  const [projectKeyword, setProjectKeyword] = useState("");
 
   /** 経過年数（初回開始日 vs 今日、端数切り落とし） */
   const calcYears = useCallback((startDateStr) => {
@@ -255,7 +264,19 @@ const SubcontractorAnalysisPage = () => {
   };
 
   const sortedList = useMemo(() => {
-    const list = [...selectedList];
+    const partnerKey = normalizeText(partnerKeyword);
+    const projectKey = normalizeText(projectKeyword);
+    let list = [...selectedList];
+    if (partnerKey) {
+      list = list.filter((row) =>
+        normalizeText(row["Partner__r.Name"]).includes(partnerKey)
+      );
+    }
+    if (projectKey) {
+      list = list.filter((row) =>
+        normalizeText(row["Name"]).includes(projectKey)
+      );
+    }
     if (!sortConfig.key) return list;
 
     return list.sort((a, b) => {
@@ -298,7 +319,7 @@ const SubcontractorAnalysisPage = () => {
       if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
-  }, [selectedList, sortConfig, calcGrossMarginPct]);
+  }, [selectedList, sortConfig, calcGrossMarginPct, partnerKeyword, projectKeyword]);
 
   // ====== ページング（sortedList の後に置く）======
   const PAGE_SIZE = 20;
@@ -327,6 +348,10 @@ const SubcontractorAnalysisPage = () => {
   useEffect(() => {
     setCurrentPage((p) => Math.min(p, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [partnerKeyword, projectKeyword]);
 
   const goPage = (p) => {
     setCurrentPage(p);
@@ -608,6 +633,43 @@ const SubcontractorAnalysisPage = () => {
                 {/* 上部ページネーション + スクロールアンカー */}
                 <div ref={tableTopRef} />
                 {renderPagination()}
+
+                <div className="detail-search">
+                  <label className="detail-search__label">
+                    協力会社名で絞り込み
+                    <input
+                      type="text"
+                      value={partnerKeyword}
+                      onChange={(e) => setPartnerKeyword(e.target.value)}
+                      placeholder="例: ○○物流"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="detail-search__clear"
+                    onClick={() => setPartnerKeyword("")}
+                    disabled={!partnerKeyword}
+                  >
+                    クリア
+                  </button>
+                  <label className="detail-search__label">
+                    案件名で絞り込み
+                    <input
+                      type="text"
+                      value={projectKeyword}
+                      onChange={(e) => setProjectKeyword(e.target.value)}
+                      placeholder="例: トヨタモビリティ"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="detail-search__clear"
+                    onClick={() => setProjectKeyword("")}
+                    disabled={!projectKeyword}
+                  >
+                    クリア
+                  </button>
+                </div>
 
                 <table className="anken-table">
                   <thead>

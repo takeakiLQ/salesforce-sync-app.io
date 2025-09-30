@@ -134,6 +134,52 @@
   gap: 8px;
 }
 
+.detail-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin: 12px 0;
+}
+
+.detail-search__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #344054;
+}
+
+.detail-search__label input {
+  width: 260px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.detail-search__label input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 4px rgba(74, 144, 226, 0.5);
+}
+
+.detail-search__clear {
+  padding: 6px 10px;
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.detail-search__clear:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.detail-search__clear:not(:disabled):hover {
+  background: #f6f7f9;
+}
+
 /* スピナー（既存） */
 .spinner-wrapper {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
