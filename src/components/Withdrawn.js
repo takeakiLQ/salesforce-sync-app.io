@@ -10,6 +10,7 @@ import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } fr
 
 const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
 const SHEET_EXITED = "離脱パートナー";
+const FILTER_CACHE_KEY = "withdrawnFilters_v1";
 
 /* ====== お気に入り ====== */
 const FAV_STORAGE_KEY = "withdrawn_favorites_v1";
@@ -122,14 +123,47 @@ function Modal({ open, title, children, onClose, onApply }) {
 }
 
 export default function Withdrawn() {
+  const savedFilters = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(FILTER_CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (error) {
+      console.error("Failed to read withdrawn filters from cache", error);
+      return null;
+    }
+  }, []);
+
+  const pickArray = (key, fallback) => {
+    if (savedFilters && Array.isArray(savedFilters[key])) {
+      return [...savedFilters[key]];
+    }
+    return fallback;
+  };
+
+  const pickString = (key, fallback) => {
+    if (savedFilters && typeof savedFilters[key] === "string") {
+      return savedFilters[key];
+    }
+    return fallback;
+  };
+
+  const pickBoolean = (key, fallback) => {
+    if (savedFilters && typeof savedFilters[key] === "boolean") {
+      return savedFilters[key];
+    }
+    return fallback;
+  };
   // ...state宣言群...
   // ...既存の state宣言群...
 
   // areaMap宣言を最初に持ってくる
   const [areaMap, setAreaMap] = useState({}); // {pref: [city,...]}
   // 住所フィルタ（モーダルで複数選択）
-  const [selectedPrefs, setSelectedPrefs] = useState([]); // 都道府県：複数
-  const [selectedCities, setSelectedCities] = useState([]); // 市区町村：複数
+  const [selectedPrefs, setSelectedPrefs] = useState(() => pickArray("selectedPrefs", [])); // 都道府県：複数
+  const [selectedCities, setSelectedCities] = useState(() => pickArray("selectedCities", [])); // 市区町村：複数
 
   const [locationModalType, setLocationModalType] = useState(null); // 都道府県/市区町村モーダル
 
@@ -190,7 +224,7 @@ export default function Withdrawn() {
   const navigate = useNavigate();
 
   // お気に入り
-  const [showFavOnly, setShowFavOnly] = useState(false);
+  const [showFavOnly, setShowFavOnly] = useState(() => pickBoolean("showFavOnly", false));
   const [favorites, setFavorites] = useState(() => {
     // localStorageから初期値取得
     try {
@@ -230,19 +264,54 @@ export default function Withdrawn() {
 
   // 年齢・キーワード
   // 都道府県リスト
-  const [ageMin, setAgeMin] = useState("");
-  const [ageMax, setAgeMax] = useState("");
-  const [keyword, setKeyword] = useState("");
-  const [quitDetailKeyword, setQuitDetailKeyword] = useState("");
+  const [ageMin, setAgeMin] = useState(() => pickString("ageMin", ""));
+  const [ageMax, setAgeMax] = useState(() => pickString("ageMax", ""));
+  const [keyword, setKeyword] = useState(() => pickString("keyword", ""));
+  const [quitDetailKeyword, setQuitDetailKeyword] = useState(() => pickString("quitDetailKeyword", ""));
 
   // 離脱判断（複数選択）
-  const [selectedDai, setSelectedDai] = useState([]);
-  const [selectedChu, setSelectedChu] = useState([]); // ★中区分は“フル文言”を保持
-  const [selectedSho, setSelectedSho] = useState([]);
+  const [selectedDai, setSelectedDai] = useState(() => pickArray("selectedDai", []));
+  const [selectedChu, setSelectedChu] = useState(() => pickArray("selectedChu", [])); // ★中区分は“フル文言”を保持
+  const [selectedSho, setSelectedSho] = useState(() => pickArray("selectedSho", []));
 
   // 並び替え
-  const [sortKey, setSortKey] = useState("ExitDate__c");
-  const [sortOrder, setSortOrder] = useState("desc");
+  const [sortKey, setSortKey] = useState(() => pickString("sortKey", "ExitDate__c"));
+  const [sortOrder, setSortOrder] = useState(() => pickString("sortOrder", "desc"));
+
+  useEffect(() => {
+    try {
+      const payload = {
+        selectedPrefs,
+        selectedCities,
+        showFavOnly,
+        ageMin,
+        ageMax,
+        keyword,
+        quitDetailKeyword,
+        selectedDai,
+        selectedChu,
+        selectedSho,
+        sortKey,
+        sortOrder,
+      };
+      localStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.error("Failed to cache withdrawn filters", error);
+    }
+  }, [
+    selectedPrefs,
+    selectedCities,
+    showFavOnly,
+    ageMin,
+    ageMax,
+    keyword,
+    quitDetailKeyword,
+    selectedDai,
+    selectedChu,
+    selectedSho,
+    sortKey,
+    sortOrder,
+  ]);
 
   // ページング
   const PAGE_SIZE = 20;
@@ -620,7 +689,7 @@ const handleLogout = () => {
               <input type="number" min="0" inputMode="numeric" placeholder="上限"
                      value={ageMax} onChange={(e) => setAgeMax(e.target.value)} className="age-input" />
               <span>歳</span>
-              <button type="button" className="clear-btn" onClick={() => { setAgeMin(""); setAgeMax(""); }} style={{ marginLeft: 8 }}>
+              <button type="button" className="clear-btn" onClick={() => { setAgeMin(""); setAgeMax(""); }} style={{ marginLeft: 8 }} disabled={ageMin === "" && ageMax === ""}>
                 クリア
               </button>
             </div>
@@ -629,25 +698,47 @@ const handleLogout = () => {
           {/* キーワード */}
           <div className="keyword-row" style={{ marginTop: 10 }}>
             <label>キーワード</label>
-            <input
-              type="text"
-              className="keyword-input"
-              placeholder="名前・住所・備考・最終稼働日／最終案件名 など"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                type="text"
+                className="keyword-input"
+                placeholder="名前・住所・最終稼働日・最終案件名 など"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                style={{ flex: "1 1 260px", minWidth: 200 }}
+              />
+              <button
+                type="button"
+                className="clear-btn"
+                onClick={() => setKeyword("")}
+                disabled={!keyword}
+              >
+                クリア
+              </button>
+            </div>
           </div>
 
           {/* 離脱判断（詳細） */}
           <div className="keyword-row" style={{ marginTop: 10 }}>
             <label>離脱判断（詳細）</label>
-            <input
-              type="text"
-              className="keyword-input"
-              placeholder="詳細テキストで絞り込み"
-              value={quitDetailKeyword}
-              onChange={(e) => setQuitDetailKeyword(e.target.value)}
-            />
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                type="text"
+                className="keyword-input"
+                placeholder="詳細テキストで検索"
+                value={quitDetailKeyword}
+                onChange={(e) => setQuitDetailKeyword(e.target.value)}
+                style={{ flex: "1 1 260px", minWidth: 200 }}
+              />
+              <button
+                type="button"
+                className="clear-btn"
+                onClick={() => setQuitDetailKeyword("")}
+                disabled={!quitDetailKeyword}
+              >
+                クリア
+              </button>
+            </div>
           </div>
 
           {/* 離脱区分：おしゃれチップ → モーダル */}
@@ -1127,3 +1218,4 @@ const styles = {
     userSelect: "none",
   },
 };
+

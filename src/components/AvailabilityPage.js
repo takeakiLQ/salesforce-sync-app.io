@@ -1,6 +1,6 @@
 // AvailabilityPage.js
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import "./AvailabilityPage.css";
 import { useNavigate } from "react-router-dom";
@@ -257,6 +257,7 @@ const AvailabilityPage = () => {
   // 並び替え
   const [sortKey, setSortKey] = useState(() => pickString("sortKey", "Name"));
   const [sortOrder, setSortOrder] = useState(() => pickString("sortOrder", "asc"));
+  const restoredSearchRef = useRef(false);
 
 
   // ページング
@@ -294,6 +295,11 @@ const AvailabilityPage = () => {
   const [ageMin, setAgeMin] = useState(() => pickString("ageMin", ""));
   const [ageMax, setAgeMax] = useState(() => pickString("ageMax", ""));
 
+  // ガイダンス＆ローディング
+  const [hasSearched, setHasSearched] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+
   useEffect(() => {
     try {
       const payload = {
@@ -310,6 +316,7 @@ const AvailabilityPage = () => {
         sortOrder,
         tableOrientation,
         showFavoritesOnly,
+        hasSearched,
       };
       localStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(payload));
     } catch (error) {
@@ -329,11 +336,10 @@ const AvailabilityPage = () => {
     sortOrder,
     tableOrientation,
     showFavoritesOnly,
+    hasSearched,
   ]);
 
-  // ガイダンス＆ローディング
-  const [hasSearched, setHasSearched] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
 
   // スクロールトップ
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -541,6 +547,16 @@ const AvailabilityPage = () => {
       setIsLoading(false);
     }, 0);
   };
+
+  useEffect(() => {
+    if (restoredSearchRef.current) return;
+    if (!savedFilters || !savedFilters.hasSearched) return;
+    restoredSearchRef.current = true;
+    const favoritesMode = !!savedFilters.showFavoritesOnly;
+    handleSearch(favoritesMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   /* ===== モーダル制御 ===== */
   const openLocationModal = (type) => {
@@ -787,6 +803,7 @@ const AvailabilityPage = () => {
                     setAgeMax("");
                   }}
                   style={{ marginLeft: 8 }}
+                  disabled={ageMin === "" && ageMax === ""}
                 >
                   クリア
                 </button>
@@ -1394,3 +1411,5 @@ const styles = {
   },
   hint: { fontSize: 12, opacity: 0.75, marginTop: 6 },
 };
+
+

@@ -610,6 +610,19 @@ button.link { background-color: #28a745; color: white; }
 }
 .clear-btn:hover { background-color: #757575; }
 
+.clear-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  color: #9ca3af !important;
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+  box-shadow: none;
+}
+.clear-btn:disabled:hover {
+  background-color: #f3f4f6;
+  color: #9ca3af !important;
+ }
+
 .weekday-section {
   display: flex;
   flex-direction: column;
