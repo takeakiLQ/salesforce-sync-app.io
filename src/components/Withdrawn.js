@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import "./Withdrawn.css";
 import HeaderMenu from "./HeaderMenu";
@@ -178,6 +178,7 @@ export default function Withdrawn() {
 
   // 離脱パートナー取得
   const fetchExited = async () => {
+    exitedReadyRef.current = false;
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("NO_TOKEN");
@@ -213,8 +214,11 @@ export default function Withdrawn() {
       setExitedPartners(data);
     } catch (e) {
       console.error("fetchExited error:", e);
+      setExitedPartners([]);
       setErrorMessage("離脱パートナー情報の取得に失敗しました。再認証してください。");
       setNeedReauth(true);
+    } finally {
+      exitedReadyRef.current = true;
     }
   };
 
@@ -255,6 +259,8 @@ export default function Withdrawn() {
 
   // （重複宣言を削除）
   const [exitedPartners, setExitedPartners] = useState([]);
+  const exitedReadyRef = useRef(false);
+  const pendingExitedSearchRef = useRef(false);
 
   // 検索結果（初期表示は空）
   const [filtered, setFiltered] = useState([]);
@@ -439,6 +445,14 @@ export default function Withdrawn() {
 const handleSearch = () => {
   setErrorMessage("");
   if (!hasSearched) setHasSearched(true);
+
+  if (!exitedReadyRef.current) {
+    pendingExitedSearchRef.current = true;
+    setIsLoading(true);
+    return;
+  }
+
+  pendingExitedSearchRef.current = false;
   setIsLoading(true);
 
   // くるくる表示のため一旦次フレームに回す
@@ -496,6 +510,12 @@ const handleSearch = () => {
   }, 0);
 };
 
+  useEffect(() => {
+    if (!exitedReadyRef.current) return;
+    if (!pendingExitedSearchRef.current) return;
+    handleSearch();
+    // eslint-disable-next-line react-hooks-exhaustive-deps
+  }, [exitedPartners]);
 
 
 /* ====== ナビ ====== */

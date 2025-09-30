@@ -224,11 +224,18 @@ const AvailabilityPage = () => {
   const [strictMatch, setStrictMatch] = useState(() => pickBoolean("strictMatch", false));
 
   const [partners, setPartners] = useState([]);
+  const partnersReadyRef = useRef(false);
+  const pendingSearchRef = useRef(null);
   // パートナーデータ取得
   useEffect(() => {
     const fetchPartners = async () => {
+      partnersReadyRef.current = false;
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        partnersReadyRef.current = true;
+        setPartners([]);
+        return;
+      }
       try {
         // パートナー情報シート名は "パートナー情報" で仮定
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/パートナー情報!A1:ZZ`;
@@ -245,6 +252,8 @@ const AvailabilityPage = () => {
       } catch (e) {
         // データ取得失敗時は空配列
         setPartners([]);
+      } finally {
+        partnersReadyRef.current = true;
       }
     };
     fetchPartners();
@@ -257,7 +266,7 @@ const AvailabilityPage = () => {
   // 並び替え
   const [sortKey, setSortKey] = useState(() => pickString("sortKey", "Name"));
   const [sortOrder, setSortOrder] = useState(() => pickString("sortOrder", "asc"));
-  const restoredSearchRef = useRef(false);
+//  const restoredSearchRef = useRef(false);
 
 
   // ページング
@@ -488,6 +497,14 @@ const AvailabilityPage = () => {
 
     setErrorMessage("");
     setHasSearched(true);
+
+    if (!partnersReadyRef.current) {
+      pendingSearchRef.current = { favoritesOnly };
+      setIsLoading(true);
+      return;
+    }
+
+    pendingSearchRef.current = null;
     setIsLoading(true);
 
     const from = parseInt(timeFrom);
@@ -548,15 +565,23 @@ const AvailabilityPage = () => {
     }, 0);
   };
 
-  useEffect(() => {
+/*   useEffect(() => {
     if (restoredSearchRef.current) return;
     if (!savedFilters || !savedFilters.hasSearched) return;
     restoredSearchRef.current = true;
     const favoritesMode = !!savedFilters.showFavoritesOnly;
     handleSearch(favoritesMode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); */
 
+/*   useEffect(() => {
+    if (!partnersReadyRef.current) return;
+    if (!pendingSearchRef.current) return;
+    const { favoritesOnly } = pendingSearchRef.current;
+    pendingSearchRef.current = null;
+    handleSearch(favoritesOnly);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partners]); */
 
   /* ===== モーダル制御 ===== */
   const openLocationModal = (type) => {
@@ -689,7 +714,15 @@ const AvailabilityPage = () => {
                 >
                   全日
                 </button>
-                <button onClick={() => setWeekSelections([])}>クリア</button>
+
+<button
+  className="weekday-clear"
+  onClick={() => setWeekSelections([])}
+  disabled={weekSelections.length === 0}
+>
+  クリア
+</button>
+
               </div>
 
               <div className="weekday-checkboxes-inline">

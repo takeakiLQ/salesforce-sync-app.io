@@ -1021,3 +1021,7 @@ button.link { background-color: #28a745; color: white; }
   display: inline-block !important;
 }
 
+.weekday-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
