@@ -140,6 +140,8 @@ body {
   flex-direction: column;
   font-weight: bold;
   font-size: 15px;
+  align-items: center;   /* ← 横方向の中央揃え */
+  text-align: center;    /* ← テキストも中央揃えに */
 }
 
 .search-panel select,
@@ -198,6 +200,19 @@ body {
 .search-panel button:hover { opacity: 0.85; }
 button.search { background-color: #0366d6; color: white; }
 button.link { background-color: #28a745; color: white; }
+
+.keyword-input {
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+}
+
+.keyword-input:focus { 
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 4px rgba(74,144,226,0.5);
+
+}
 
 .partner-cards {
   display: flex;
@@ -941,8 +956,12 @@ button.link { background-color: #28a745; color: white; }
 .page-ellipsis { padding: 0 6px; color: #6b7280; }
 
 /* 年齢入力の幅をコンパクトに */
+/* 年齢入力の幅をコンパクトに */
 .age-input {
-  width: 120px;
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+  flex: 0 0 70px;   /* ここがポイント */
   padding: 6px 8px;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -954,9 +973,16 @@ button.link { background-color: #28a745; color: white; }
   box-shadow: 0 0 4px rgba(74,144,226,0.5);
 }
 @media (max-width: 480px) {
-  .age-input { width: 76px; }
+  .age-input { width: 60px; }
 }
 
+.age-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
 
 .favorite-btn {
   font-size: 20px;          /* 大きく目立たせる */

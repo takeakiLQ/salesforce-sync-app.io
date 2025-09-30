@@ -942,7 +942,10 @@ button.link { background-color: #28a745; color: white; }
 
 /* 年齢入力の幅をコンパクトに */
 .age-input {
-  width: 120px;
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+  flex: 0 0 70px;   /* ここがポイント */
   padding: 6px 8px;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -954,9 +957,22 @@ button.link { background-color: #28a745; color: white; }
   box-shadow: 0 0 4px rgba(74,144,226,0.5);
 }
 @media (max-width: 480px) {
-  .age-input { width: 76px; }
+  .age-input { width: 60px; }
 }
 
+.age-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.age-input-row .clear-btn {
+  margin-left: 0;       /* JSXで marginLeft: 8 を指定している場合でも上書き */
+  flex: 0 0 auto;
+  order: 2;             /* 入力枠の下に回って並ぶように順序を後ろに */
+}
 
 .favorite-btn {
   font-size: 20px;          /* 大きく目立たせる */

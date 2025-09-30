@@ -794,10 +794,11 @@ const AvailabilityPage = () => {
                   onChange={(e) => setAgeMax(e.target.value)}
                   className="age-input"
                 />
-                <span>歳</span>
+                
                 <button
                   type="button"
                   className="clear-btn"
+                  
                   onClick={() => {
                     setAgeMin("");
                     setAgeMax("");

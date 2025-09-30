@@ -688,7 +688,7 @@ const handleLogout = () => {
               <span className="age-tilde">～</span>
               <input type="number" min="0" inputMode="numeric" placeholder="上限"
                      value={ageMax} onChange={(e) => setAgeMax(e.target.value)} className="age-input" />
-              <span>歳</span>
+              
               <button type="button" className="clear-btn" onClick={() => { setAgeMin(""); setAgeMax(""); }} style={{ marginLeft: 8 }} disabled={ageMin === "" && ageMax === ""}>
                 クリア
               </button>
@@ -702,7 +702,7 @@ const handleLogout = () => {
               <input
                 type="text"
                 className="keyword-input"
-                placeholder="名前・住所・最終稼働日・最終案件名 など"
+                placeholder="名前・住所・最終案件名等"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 style={{ flex: "1 1 260px", minWidth: 200 }}
