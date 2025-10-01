@@ -50,19 +50,75 @@ const buildDisplayLines = (row) => {
   const params = row?.searchParams || {};
   const lines = [];
 
-  const prefectureLines = groupByThree(params.selectedPrefs || [], 1);
+  const pageKey = String(row?.pageKey || params.pageKey || "").toLowerCase();
+  const isWithdrawn = pageKey === "withdrawn";
+
+  const prefectures = Array.isArray(params.selectedPrefs) ? params.selectedPrefs : [];
+  const prefectureLines = groupByThree(prefectures, isWithdrawn ? Infinity : 1);
   prefectureLines.forEach((line) => {
     if (line) {
       lines.push(clampText(line, 120));
     }
   });
 
-  const districtLines = groupByThree(params.selectedDistricts || [], 3);
+  const districtsSource = Array.isArray(params.selectedDistricts)
+    ? params.selectedDistricts
+    : Array.isArray(params.selectedCities)
+    ? params.selectedCities
+    : [];
+
+  const districtLines = groupByThree(districtsSource, isWithdrawn ? Infinity : 3);
   districtLines.forEach((line) => {
     if (line) {
       lines.push(clampText(line, 120));
     }
   });
+
+  if (isWithdrawn) {
+    const buildCountLine = (label, list) => {
+      const count = Array.isArray(list) ? list.length : 0;
+      return `${label}: ${count ? `${count}件選択` : "選択なし"}`;
+    };
+
+    [
+      buildCountLine("離脱大区分", params.selectedDai),
+      buildCountLine("離脱中区分", params.selectedChu),
+      buildCountLine("離脱小区分", params.selectedSho),
+    ].forEach((entry) => {
+      lines.push(clampText(entry, 120));
+    });
+
+    const ageMinRaw = params.ageMin ?? "";
+    const ageMaxRaw = params.ageMax ?? "";
+    const hasAge = String(ageMinRaw).trim() !== "" || String(ageMaxRaw).trim() !== "";
+    const ageLine = hasAge
+      ? `年齢: ${(String(ageMinRaw).trim() || "__")}〜${(String(ageMaxRaw).trim() || "__")}`
+      : "年齢: 指定なし";
+    lines.push(clampText(ageLine, 120));
+
+    if (params.favoritesOnly) {
+      lines.push(clampText("お気に入りのみ", 120));
+    }
+
+    const keywordText = (params.keyword ?? "").toString().trim();
+    if (keywordText.length > 0) {
+      const summaryPattern = /(都道府県|市区町村|離脱[大中小]区分|年齢|お気に入り):/;
+      if (!summaryPattern.test(keywordText)) {
+        lines.push(clampText(`キーワード: ${keywordText}`, 120));
+      }
+    }
+
+    const detailText = (params.quitDetailKeyword ?? "").toString().trim();
+    if (detailText.length > 0) {
+      lines.push(clampText(`詳細: ${detailText}`, 120));
+    }
+
+    if (!lines.length) {
+      lines.push("(条件なし)");
+    }
+
+    return lines;
+  }
 
   const others = [];
   if (Array.isArray(params.weekSelections) && params.weekSelections.length) {
@@ -96,6 +152,7 @@ const buildDisplayLines = (row) => {
 
   return lines;
 };
+
 
 const SearchHistoryModal = ({
   isOpen,

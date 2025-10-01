@@ -3,14 +3,17 @@ import axios from "axios";
 import "./Withdrawn.css";
 import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
+import SearchHistoryModal from "./SearchHistoryModal";
 import { useNavigate } from "react-router-dom";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
+import { addSearchHistory } from "../utils/searchHistoryApi";
 
 // ...既存のロジック...
 
 const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
 const SHEET_EXITED = "離脱パートナー";
 const FILTER_CACHE_KEY = "withdrawnFilters_v1";
+const SEARCH_HISTORY_PAGE_KEY = "withdrawn";
 
 /* ====== お気に入り ====== */
 const FAV_STORAGE_KEY = "withdrawn_favorites_v1";
@@ -267,6 +270,7 @@ export default function Withdrawn() {
   const [rawFiltered, setRawFiltered] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   // 年齢・キーワード
   // 都道府県リスト
@@ -456,6 +460,36 @@ const handleSearch = () => {
   pendingExitedSearchRef.current = false;
   setIsLoading(true);
 
+  const favoritesFlag = showFavOnly;
+  const searchParamsSnapshot = {
+    selectedPrefs: [...selectedPrefs],
+    selectedCities: [...selectedCities],
+    selectedDistricts: [...selectedCities],
+    selectedDai: [...selectedDai],
+    selectedChu: [...selectedChu],
+    selectedSho: [...selectedSho],
+    ageMin,
+    ageMax,
+    keyword,
+    quitDetailKeyword,
+    favoritesOnly: favoritesFlag,
+    sortKey,
+    sortOrder,
+  };
+  const keywordParts = [];
+  if (favoritesFlag) keywordParts.push("お気に入りのみ");
+  if (selectedPrefs.length) keywordParts.push(`都道府県:${selectedPrefs.join("/")}`);
+  if (selectedCities.length) keywordParts.push(`市区町村:${selectedCities.join("/")}`);
+  if (selectedDai.length) keywordParts.push(`離脱大分類:${selectedDai.join("/")}`);
+  if (selectedChu.length) keywordParts.push(`離脱中分類:${selectedChu.join("/")}`);
+  if (selectedSho.length) keywordParts.push(`離脱小分類:${selectedSho.join("/")}`);
+  if (ageMin || ageMax) keywordParts.push(`年齢:${ageMin || "--"}〜${ageMax || "--"}`);
+  if (keyword.trim()) keywordParts.push(`キーワード:${keyword.trim()}`);
+  if (quitDetailKeyword.trim()) keywordParts.push(`離脱理由詳細:${quitDetailKeyword.trim()}`);
+  const keywordLabel = keywordParts.join(" | ");
+  const pageUrl = typeof window !== "undefined" ? window.location.pathname : "";
+  const startedAt = performance.now();
+
   // くるくる表示のため一旦次フレームに回す
   setTimeout(() => {
     const result = exitedPartners.filter((p) => {
@@ -474,40 +508,66 @@ const handleSearch = () => {
         if (Number.isNaN(age) || !(minOk && maxOk)) return false;
       }
 
-      // 離脱判断
+      // 離脱理由
       if (selectedDai.length && !selectedDai.includes(p["Quit_Dai__c"])) return false;
       if (selectedChu.length && !selectedChu.includes(p["Quit_chu__c"])) return false;
       if (selectedSho.length && !selectedSho.includes(p["Quit_sho__c"])) return false;
 
-      // 離脱判断（詳細）
+      // 離脱理由（詳細）
       if (quitDetailKeyword.trim() !== "") {
         const qd = quitDetailKeyword.toLowerCase();
         const detail = String(p["Quit_detail__c"] || "").toLowerCase();
         if (!detail.includes(qd)) return false;
       }
 
-      // 一般キーワード
+      // 自由キーワード
       if (keyword.trim() !== "") {
         const q = keyword.toLowerCase();
         const hay = [
-          p["Name"], p["Name__c"], p["Address__c"], p["DriverSituation__c"],
-          pick(p, ["ExitReason__c", "離脱理由", "退会理由"]),
-          p["MailingState"], p["MailingCity"], p["MailingStreet"],
-          p["Quit_detail__c"], p["最終稼働日"], p["最終案件名"],
-        ].filter(Boolean).join(" ").toLowerCase();
+          p["Name"],
+          p["Name__c"],
+          p["Address__c"],
+          p["DriverSituation__c"],
+          pick(p, ["ExitReason__c", "離脱理由", "退職理由"]),
+          p["MailingState"],
+          p["MailingCity"],
+          p["MailingStreet"],
+          p["Quit_detail__c"],
+          p["直近案件"],
+          p["直近稼働"],
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         if (!hay.includes(q)) return false;
       }
 
-      // ★お気に入りのみ
-      if (showFavOnly && !favorites.has(getPartnerKey(p))) return false;
+      // お気に入りのみ
+      if (favoritesFlag && !favorites.has(getPartnerKey(p))) return false;
 
       return true;
     });
 
     setRawFiltered(result);
     setFiltered(sortPartners(result, sortKey, sortOrder));
-    setCurrentPage(1); // 検索したら1ページ目へ
+    setCurrentPage(1); // 結果表示開始は1ページ目に戻す
     setIsLoading(false);
+
+    if (effectiveUserId) {
+      const elapsed = Math.round(performance.now() - startedAt);
+      addSearchHistory({
+        userId: effectiveUserId,
+        pageKey: SEARCH_HISTORY_PAGE_KEY,
+        searchParams: searchParamsSnapshot,
+        executedAt: new Date().toISOString(),
+        resultCount: result.length,
+        elapsedMs: elapsed,
+        pageUrl,
+        keyword: keywordLabel || undefined,
+      }).catch((error) => {
+        console.error("検索履歴の保存に失敗しました", error);
+      });
+    }
   }, 0);
 };
 
@@ -532,6 +592,7 @@ const handleLogout = () => {
 
   const userEmail = localStorage.getItem("userEmail") || "未取得";
   const userNameOnly = userEmail.includes("@") ? userEmail.split("@")[0] : userEmail;
+  const effectiveUserId = userEmail && userEmail !== "未取得" ? userEmail : "";
 
   /* ====== モーダル ====== */
   const openModal = (type) => {
@@ -560,6 +621,75 @@ const handleLogout = () => {
       setSelectedCities(values);
     }
     setLocationModalType(null);
+  };
+
+  const applyHistoryParams = (params = {}) => {
+    if (!params || typeof params !== "object") return;
+    const hasOwn = (key) => Object.prototype.hasOwnProperty.call(params, key);
+
+    if (Array.isArray(params.selectedPrefs)) {
+      setSelectedPrefs([...params.selectedPrefs]);
+    }
+    if (Array.isArray(params.selectedCities)) {
+      setSelectedCities([...params.selectedCities]);
+    } else if (Array.isArray(params.selectedDistricts)) {
+      setSelectedCities([...params.selectedDistricts]);
+    }
+    if (Array.isArray(params.selectedDai)) {
+      setSelectedDai([...params.selectedDai]);
+    }
+    if (Array.isArray(params.selectedChu)) {
+      setSelectedChu([...params.selectedChu]);
+    }
+    if (Array.isArray(params.selectedSho)) {
+      setSelectedSho([...params.selectedSho]);
+    }
+    if (hasOwn("ageMin")) {
+      setAgeMin(
+        params.ageMin === undefined || params.ageMin === null
+          ? ""
+          : String(params.ageMin)
+      );
+    }
+    if (hasOwn("ageMax")) {
+      setAgeMax(
+        params.ageMax === undefined || params.ageMax === null
+          ? ""
+          : String(params.ageMax)
+      );
+    }
+    if (hasOwn("keyword")) {
+      setKeyword(
+        params.keyword === undefined || params.keyword === null
+          ? ""
+          : String(params.keyword)
+      );
+    }
+    if (hasOwn("quitDetailKeyword")) {
+      setQuitDetailKeyword(
+        params.quitDetailKeyword === undefined || params.quitDetailKeyword === null
+          ? ""
+          : String(params.quitDetailKeyword)
+      );
+    }
+    if (hasOwn("favoritesOnly")) {
+      setShowFavOnly(!!params.favoritesOnly);
+    }
+    if (typeof params.sortKey === "string" && params.sortKey) {
+      setSortKey(params.sortKey);
+    }
+    if (typeof params.sortOrder === "string" && params.sortOrder) {
+      setSortOrder(params.sortOrder);
+    }
+  };
+
+  const handleApplyHistoryOnly = (params = {}) => {
+    applyHistoryParams(params);
+  };
+
+  const handleApplyHistoryWithSearch = (params = {}) => {
+    applyHistoryParams(params);
+    setTimeout(() => handleSearch(), 0);
   };
 
   const applyModal = () => {
@@ -831,6 +961,13 @@ const handleLogout = () => {
 
 
             <button className="search" onClick={handleSearch}>検索</button>
+            <button
+              className="history-button"
+              type="button"
+              onClick={() => setHistoryModalOpen(true)}
+            >
+              検索履歴
+            </button>
           </div>
         </div>
 
@@ -1132,6 +1269,14 @@ const handleLogout = () => {
             ? "都道府県名を検索"
             : "市区町村名を検索"
         }
+      />
+      <SearchHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        userId={effectiveUserId}
+        pageKey={SEARCH_HISTORY_PAGE_KEY}
+        onApply={handleApplyHistoryOnly}
+        onSearch={handleApplyHistoryWithSearch}
       />
     </>
   );
