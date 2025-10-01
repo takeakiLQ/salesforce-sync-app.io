@@ -7,12 +7,15 @@ import { useNavigate } from "react-router-dom";
 import ReactSlider from "react-slider";
 import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
+import SearchHistoryModal from "./SearchHistoryModal";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
+import { addSearchHistory } from "../utils/searchHistoryApi";
 
 const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
 // const SHEET_PARTNER = "パートナー情報"; // 未使用のためコメントアウト
 const SHEET_ASSIGN = "稼働中案件";
 const FILTER_CACHE_KEY = "availabilityFilters_v1";
+const SEARCH_HISTORY_PAGE_KEY = "availability";
 
 const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
@@ -307,6 +310,7 @@ const AvailabilityPage = () => {
   // ガイダンス＆ローディング
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -366,6 +370,7 @@ const AvailabilityPage = () => {
   const userNameOnly = userEmail.includes("@")
     ? userEmail.split("@")[0]
     : userEmail;
+  const effectiveUserId = userEmail && userEmail !== "未取得" ? userEmail : "";
 
   const handleLogout = () => {
     // ログイン情報だけ削除（お気に入りは保持する）
@@ -399,6 +404,7 @@ const AvailabilityPage = () => {
 
   // 県変更時：候補外の市区町村は自動除外
   useEffect(() => {
+    if (!areaMap || !Object.keys(areaMap).length) return;
     setSelectedDistricts((prev) =>
       sanitizeCitySelection(areaMap, selectedPrefs, prev)
     );
@@ -510,6 +516,30 @@ const AvailabilityPage = () => {
     const from = parseInt(timeFrom);
     const to = parseInt(timeTo);
     const days = weekSelections; // ← 空なら空車判定は適用しない
+    const searchParamsSnapshot = {
+      selectedPrefs: [...selectedPrefs],
+      selectedDistricts: [...selectedDistricts],
+      weekSelections: [...weekSelections],
+      timeFrom,
+      timeTo,
+      ageMin,
+      ageMax,
+      statusFilter: [...statusFilter],
+      strictMatch,
+      favoritesOnly,
+      sortKey,
+      sortOrder,
+    };
+
+    const keywordSummaryParts = [];
+    if (favoritesOnly) keywordSummaryParts.push("お気に入りのみ");
+    if (selectedPrefs.length) keywordSummaryParts.push(`都道府県:${selectedPrefs.join("/")}`);
+    if (selectedDistricts.length) keywordSummaryParts.push(`市区町村:${selectedDistricts.join("/")}`);
+    if (weekSelections.length) keywordSummaryParts.push(`曜日:${weekSelections.join("/")}`);
+    const keywordLabel = keywordSummaryParts.join(" | ");
+    const pageUrl = typeof window !== "undefined" ? window.location.pathname : "";
+    const startedAt = performance.now();
+
 
     setTimeout(() => {
       const result = partners.filter((p) => {
@@ -562,6 +592,23 @@ const AvailabilityPage = () => {
       setFilteredPartners(sortPartners(result, sortKey, sortOrder));
       setCurrentPage(1);
       setIsLoading(false);
+
+      if (effectiveUserId) {
+        const elapsed = Math.round(performance.now() - startedAt);
+        addSearchHistory({
+          userId: effectiveUserId,
+          pageKey: SEARCH_HISTORY_PAGE_KEY,
+          searchParams: searchParamsSnapshot,
+          executedAt: new Date().toISOString(),
+          resultCount: result.length,
+          elapsedMs: elapsed,
+          pageUrl,
+          keyword: keywordLabel || undefined,
+        }).catch((error) => {
+          console.error("検索履歴の保存に失敗しました", error);
+        });
+      }
+
     }, 0);
   };
 
@@ -629,6 +676,79 @@ const AvailabilityPage = () => {
   };
 
   // ページ変更時にトップへ（任意のUX改善）
+  const applyHistoryParams = (params = {}) => {
+    if (!params || typeof params !== "object") return;
+    const hasOwn = (key) => Object.prototype.hasOwnProperty.call(params, key);
+    const normalizeTime = (value) => {
+      if (value === undefined || value === null) return undefined;
+      const str = String(value).trim();
+      if (!str) return "00";
+      const num = Number(str);
+      return Number.isNaN(num) ? str : num.toString().padStart(2, "0");
+    };
+
+    if (Array.isArray(params.selectedPrefs)) {
+      setSelectedPrefs([...params.selectedPrefs]);
+    }
+    if (Array.isArray(params.selectedDistricts)) {
+      setSelectedDistricts([...params.selectedDistricts]);
+    }
+    if (Array.isArray(params.weekSelections)) {
+      setWeekSelections([...params.weekSelections]);
+    }
+    if (hasOwn("timeFrom")) {
+      const normalized = normalizeTime(params.timeFrom);
+      if (normalized !== undefined) {
+        setTimeFrom(normalized);
+      }
+    }
+    if (hasOwn("timeTo")) {
+      const normalized = normalizeTime(params.timeTo);
+      if (normalized !== undefined) {
+        setTimeTo(normalized);
+      }
+    }
+    if (hasOwn("ageMin")) {
+      setAgeMin(
+        params.ageMin === undefined || params.ageMin === null ? "" : String(params.ageMin)
+      );
+    }
+    if (hasOwn("ageMax")) {
+      setAgeMax(
+        params.ageMax === undefined || params.ageMax === null ? "" : String(params.ageMax)
+      );
+    }
+    if (Array.isArray(params.statusFilter)) {
+      setStatusFilter([...params.statusFilter]);
+    }
+    if (hasOwn("strictMatch")) {
+      setStrictMatch(!!params.strictMatch);
+    }
+    if (hasOwn("favoritesOnly")) {
+      setShowFavoritesOnly(!!params.favoritesOnly);
+    }
+    if (typeof params.sortKey === "string" && params.sortKey) {
+      setSortKey(params.sortKey);
+    }
+    if (typeof params.sortOrder === "string" && params.sortOrder) {
+      setSortOrder(params.sortOrder);
+    }
+  };
+
+  const handleApplyHistoryOnly = (params = {}) => {
+    applyHistoryParams(params);
+  };
+
+  const handleApplyHistoryWithSearch = (params = {}) => {
+    applyHistoryParams(params);
+    const hasFavoritesFlag = Object.prototype.hasOwnProperty.call(
+      params || {},
+      "favoritesOnly"
+    );
+    const favoritesFlag = hasFavoritesFlag ? !!params.favoritesOnly : false;
+    setTimeout(() => handleSearch(favoritesFlag), 0);
+  };
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -962,6 +1082,14 @@ const AvailabilityPage = () => {
                 title="お気に入りにチェック済みのドライバーだけを表示"
               >
                 ⭐ お気に入り表示（都道府県・条件無視）
+              </button>
+
+              <button
+                className="history-button"
+                type="button"
+                onClick={() => setHistoryModalOpen(true)}
+              >
+                検索履歴
               </button>
             </div>
           </div>
@@ -1425,6 +1553,14 @@ const AvailabilityPage = () => {
             ? "都道府県名を検索"
             : "市区町村名を検索"
         }
+      />
+      <SearchHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        userId={effectiveUserId}
+        pageKey={SEARCH_HISTORY_PAGE_KEY}
+        onApply={handleApplyHistoryOnly}
+        onSearch={handleApplyHistoryWithSearch}
       />
     </>
   );
