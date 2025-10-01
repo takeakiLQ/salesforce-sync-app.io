@@ -385,6 +385,7 @@ export default function Withdrawn() {
 
   // 都道府県の変更で候補外の市区町村を自動除外
   useEffect(() => {
+    if (!areaMap || !Object.keys(areaMap).length) return;
     setSelectedCities((prev) => sanitizeCitySelection(areaMap, selectedPrefs, prev));
   }, [areaMap, selectedPrefs]);
 
