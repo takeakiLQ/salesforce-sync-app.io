@@ -400,13 +400,18 @@ export default function Withdrawn() {
   // （重複宣言を削除）
   const [exitedPartners, setExitedPartners] = useState([]);
   const exitedReadyRef = useRef(false);
-  const pendingExitedSearchRef = useRef(false);
+  // 前回の条件を復元する場合は、最初から「検索待ち」状態にしておく
+  const pendingExitedSearchRef = useRef(
+    Boolean(savedFilters && savedFilters.hasSearched)
+  );
 
   // 検索結果（初期表示は空）
   const [filtered, setFiltered] = useState([]);
   const [rawFiltered, setRawFiltered] = useState([]);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // 前回検索していたなら、データ到着後に同じ条件で自動的に検索し直す
+  const restoreSearch = Boolean(savedFilters && savedFilters.hasSearched);
+  const [hasSearched, setHasSearched] = useState(restoreSearch);
+  const [isLoading, setIsLoading] = useState(restoreSearch);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   // 検索パネルの開閉（検索して結果が出たら畳む）
   const [panelOpen, setPanelOpen] = useState(true);
@@ -444,6 +449,7 @@ export default function Withdrawn() {
         selectedSho,
         sortKey,
         sortOrder,
+        hasSearched,
       };
       localStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(payload));
     } catch (error) {
@@ -462,6 +468,7 @@ export default function Withdrawn() {
     selectedSho,
     sortKey,
     sortOrder,
+    hasSearched,
   ]);
 
   // ページング
@@ -548,13 +555,17 @@ export default function Withdrawn() {
     setSelectedCities((prev) => sanitizeCitySelection(areaMap, selectedPrefs, prev));
   }, [areaMap, selectedPrefs]);
 
-  /* ====== 並び替え ====== */
-  const sortPartners = (list, key, order) => {
+  /* ====== 並び替え ======
+     favorites を参照するため useCallback でラップする。
+     以前は素の関数のうえ再ソートの effect が [sortKey, sortOrder] しか
+     見ていなかったため、「お気に入り順」で★を付け替えても並びが
+     変わらなかった。 */
+  const sortPartners = useCallback((list, key, order) => {
     const getVal = (p) => {
       if (key === "_favorite") {
-  // お気に入り: 1 / 非お気に入り: 0
-  return favorites.has(getPartnerKey(p)) ? 1 : 0;
-}
+        // お気に入り: 1 / 非お気に入り: 0
+        return favorites.has(getPartnerKey(p)) ? 1 : 0;
+      }
       if (key === "Now_Age__c") return Number(p["Now_Age__c"]) || -Infinity;
       if (key === "ExitDate__c") {
         const v = pick(p, EXIT_DATE_KEYS);
@@ -586,7 +597,7 @@ export default function Withdrawn() {
       }
       return order === "asc" ? String(A).localeCompare(String(B)) : String(B).localeCompare(String(A));
     });
-  };
+  }, [favorites]);
 
   // ヘッダクリックで昇降トグル
   const toggleSort = (key) => {
@@ -595,11 +606,10 @@ export default function Withdrawn() {
   };
   const sortCaret = (key) => (sortKey === key ? (sortOrder === "asc" ? " ▲" : " ▼") : "");
 
-  // 並び替え変更で再ソート
+  // 並び替え条件・お気に入り・検索結果のいずれかが変わったら再ソート
   useEffect(() => {
     setFiltered(sortPartners(rawFiltered, sortKey, sortOrder));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortKey, sortOrder]);
+  }, [rawFiltered, sortKey, sortOrder, sortPartners]);
 
 /* ====== 検索 ====== */
 const handleSearch = () => {

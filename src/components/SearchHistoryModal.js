@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import PropTypes from "prop-types";
 import {
   fetchSearchHistories,
   updateSearchHistory,
@@ -154,11 +153,13 @@ const buildDisplayLines = (row) => {
 };
 
 
+// React 19 では関数コンポーネントの propTypes / defaultProps が無視されるため、
+// 既定値は引数のデフォルト値で指定する（prop-types への依存も不要になる）
 const SearchHistoryModal = ({
-  isOpen,
+  isOpen = false,
   onClose,
   userId,
-  pageKey,
+  pageKey = "",
   onApply,
   onSearch,
 }) => {
@@ -351,24 +352,6 @@ const SearchHistoryModal = ({
       </div>
     </div>
   );
-};
-
-SearchHistoryModal.propTypes = {
-  isOpen: PropTypes.bool,
-  onClose: PropTypes.func,
-  userId: PropTypes.string,
-  pageKey: PropTypes.string,
-  onApply: PropTypes.func,
-  onSearch: PropTypes.func,
-};
-
-SearchHistoryModal.defaultProps = {
-  isOpen: false,
-  onClose: undefined,
-  userId: undefined,
-  pageKey: "",
-  onApply: undefined,
-  onSearch: undefined,
 };
 
 export default SearchHistoryModal;

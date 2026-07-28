@@ -266,7 +266,13 @@ const AvailabilityPage = () => {
   const [partners, setPartners] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const partnersReadyRef = useRef(false);
-  const pendingSearchRef = useRef(null);
+  // 前回の条件を復元する場合は、最初から「検索待ち」状態にしておく。
+  // データが届いた時点で下の effect が拾って実行する。
+  const pendingSearchRef = useRef(
+    savedFilters && savedFilters.hasSearched
+      ? { favoritesOnly: !!savedFilters.showFavoritesOnly }
+      : null
+  );
 
   // パートナーIDごとの案件索引。
   // カード描画のたびに assignments 全件を filter していたのを1回のグルーピングに置き換える。
@@ -327,8 +333,10 @@ const AvailabilityPage = () => {
   const [ageMax, setAgeMax] = useState(() => pickString("ageMax", ""));
 
   // ガイダンス＆ローディング
-  const [hasSearched, setHasSearched] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // 前回検索していたなら、データ到着後に同じ条件で自動的に検索し直す
+  const restoreSearch = Boolean(savedFilters && savedFilters.hasSearched);
+  const [hasSearched, setHasSearched] = useState(restoreSearch);
+  const [isLoading, setIsLoading] = useState(restoreSearch);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   // 検索パネルの開閉（検索して結果が出たら畳む）
   const [panelOpen, setPanelOpen] = useState(true);
