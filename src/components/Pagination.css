@@ -25,11 +25,19 @@
 .page-btn:hover:not(:disabled) { background: #f3f4f6; }
 .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* 現在ページ。#3b82f6 に白文字はコントラスト比 約3.4:1 で読みづらかったため、
+   検索ボタンと同じ #0366d6（約5.4:1・WCAG AA適合）に合わせている。 */
 .page-btn.active {
-  background: #3b82f6;
+  background: #0366d6;
   color: #fff;
-  border-color: #3b82f6;
-  font-weight: 600;
+  border-color: #024db0;
+  font-weight: 700;
+  /* 他のボタンより一段浮かせて現在位置を分かりやすくする */
+  box-shadow: 0 1px 3px rgba(2, 77, 176, 0.4);
+}
+
+.page-btn.active:hover:not(:disabled) {
+  background: #024db0;
 }
 
 .page-btn:focus-visible {
