@@ -208,29 +208,61 @@
   word-break: break-word;
   overflow-wrap: anywhere;
 }
-/* ページネーション */
-.pagination {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: center;
-  margin: 12px 0;
-  flex-wrap: wrap;
+/* ページネーションは Pagination.css に統合済み */
+
+/* ===============================
+   タブレット
+   =============================== */
+@media (max-width: 768px) {
+  /* 12列あるため、テーブルは横スクロールに任せて潰さない */
+  .anken-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -4px;
+    padding: 0 4px;
+  }
+
+  .anken-table {
+    min-width: 900px;
+    font-size: 13px;
+  }
+
+  .anken-table th,
+  .anken-table td { padding: 5px 6px; }
+
+  /* グラフは1列に積む */
+  .charts-row { gap: 12px; }
+  .chart-box {
+    flex: 1 1 100%;
+    margin: 12px 0;
+    padding: 12px;
+  }
+
+  .bar-label { width: 92px; font-size: 13px; }
+  .bar { height: 20px; font-size: 12px; }
+
+  .detail-header { flex-wrap: wrap; }
+  .detail-search { gap: 8px; }
+  .detail-search__label { flex: 1 1 100%; }
+  .detail-search__label input { width: 100%; }
 }
-.page-btn {
-  padding: 6px 10px;
-  border: 1px solid #d0d5dd;
-  background: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
+
+/* ===============================
+   スマホ
+   =============================== */
+@media (max-width: 480px) {
+  .anken-table { min-width: 860px; font-size: 12px; }
+
+  .chart-box { padding: 10px; }
+  .chart-header h3 { font-size: 15px; margin: 0; }
+
+  .bar-label { width: 72px; font-size: 12px; }
+  .bar-container { margin-left: 6px; }
+  .bar { height: 18px; padding-left: 6px; }
+
+  .detail-header h3 { font-size: 15px; margin: 0; }
+
+  /* 指で押せる大きさを確保する */
+  .clear-btn,
+  .detail-search__clear { padding: 8px 12px; font-size: 13px; }
 }
-.page-btn:hover:not(:disabled) { background: #f6f7f9; }
-.page-btn.active {
-  background: #e8eefc;
-  border-color: #9db5ff;
-  font-weight: 600;
-}
-.page-btn:disabled { opacity: .5; cursor: not-allowed; }
-.page-ellipsis { padding: 0 4px; color: #999; }
-.page-info { margin-left: 6px; color: #666; font-size: 12px; }

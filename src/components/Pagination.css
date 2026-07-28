@@ -1,0 +1,61 @@
+/* Pagination.css: ページネーションの唯一の定義。
+   以前は SearchPage.css と SubcontractorAnalysisPage.css の両方に定義があり、
+   後者が背景色だけを上書きしていたため .page-btn.active に前者の
+   color:#fff が残り「薄い青背景＋白文字」で現在ページが読めなくなっていた。 */
+
+.pagination {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0 24px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.page-btn:hover:not(:disabled) { background: #f3f4f6; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.page-btn.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+  font-weight: 600;
+}
+
+.page-btn:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+}
+
+.page-ellipsis { padding: 0 6px; color: #6b7280; }
+.page-info { margin-left: 6px; color: #666; font-size: 12px; }
+
+/* スマホ: 指で押せる大きさを確保し、折り返しても詰まらないようにする */
+@media (max-width: 480px) {
+  .pagination {
+    gap: 4px;
+    margin: 12px 0 16px;
+  }
+
+  .page-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-width: 40px;
+  }
+
+  .page-info {
+    margin-left: 0;
+    flex: 1 0 100%;
+    text-align: center;
+  }
+}

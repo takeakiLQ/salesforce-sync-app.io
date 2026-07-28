@@ -9,8 +9,8 @@
 }
 
 .search-history-modal__container {
-  width: 520px;
-  max-height: 80vh;
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(80vh, calc(100vh - 24px));
   background: #fff;
   border-radius: 12px;
   display: flex;
@@ -206,4 +206,48 @@
 
 .search-history-modal__item:hover .search-history-modal__actions button:hover {
   background: #e8efff;
+}
+
+/* ===============================
+   スマホ
+   =============================== */
+@media (max-width: 640px) {
+  .search-history-modal__overlay {
+    align-items: flex-end; /* 画面下寄せ（親指が届く位置） */
+    padding: 0;
+  }
+
+  .search-history-modal__container {
+    width: 100vw;
+    max-height: 88vh;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .search-history-modal__header { padding: 12px 14px; }
+  .search-history-modal__header h2 { font-size: 16px; }
+  .search-history-modal__close { padding: 4px 8px; font-size: 24px; }
+
+  .search-history-modal__controls {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .search-history-modal__toggle { font-size: 13px; }
+  .search-history-modal__refresh { padding: 8px 14px; }
+
+  .search-history-modal__body { padding: 10px 14px 16px; }
+
+  /* 日時を条件の下に回して、条件テキストに幅を与える */
+  .search-history-modal__summary {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .search-history-modal__keyword { max-width: 100%; }
+
+  .search-history-modal__main { padding: 12px 10px; }
+
+  /* 操作ボタンは縦積みのままだと細長くなるので幅を詰める */
+  .search-history-modal__actions { flex: 0 0 56px; }
+  .search-history-modal__actions button { padding: 10px 6px; font-size: 12px; }
+  .search-history-modal__favorite { font-size: 18px; }
 }

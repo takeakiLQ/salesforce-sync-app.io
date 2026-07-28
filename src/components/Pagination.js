@@ -1,4 +1,5 @@
 import React from "react";
+import "./Pagination.css";
 
 /**
  * 検索結果の共通ページネーション。

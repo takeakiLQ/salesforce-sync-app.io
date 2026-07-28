@@ -1154,7 +1154,13 @@ const AvailabilityPage = () => {
                             {(p["taiou_joukyou__c"] ||
                               p["taioujoukyou_sapto__c"]) && (
                               <div className="info-tooltip">
-                                <span className="info-icon">ℹ️</span>
+                                <button
+                                  type="button"
+                                  className="info-trigger"
+                                  aria-label="対応状況を表示"
+                                >
+                                  <span className="info-icon">ℹ️</span>
+                                </button>
                                 <div className="tooltip-content">
                                   {p["taiou_joukyou__c"] && (
                                     <p>
@@ -1347,7 +1353,13 @@ const AvailabilityPage = () => {
                                   </a>
                                   {a["Haisyasinsei_komento__c"] && (
                                     <div className="info-tooltip">
-                                      ℹ️
+                                      <button
+                                        type="button"
+                                        className="info-trigger"
+                                        aria-label="配車承認申請者コメントを表示"
+                                      >
+                                        <span className="info-icon">ℹ️</span>
+                                      </button>
                                       <div className="tooltip-content">
                                         配車承認申請者コメント：
                                         <br />

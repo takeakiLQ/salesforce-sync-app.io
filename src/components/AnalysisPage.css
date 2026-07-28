@@ -1,0 +1,21 @@
+/* 分析系ページ（案件分析・協力会社分析）共通のレイアウト。
+   どちらも <div className="anken-page"> を使うため1ファイルにまとめている。
+   ※以前は GeneralAnalysisPage.css に .analysis-page という
+     JSXに存在しないクラスが書かれており、ページ余白が効いていなかった。 */
+
+.anken-page {
+  padding: 8px 20px 20px;
+}
+
+.main-content {
+  padding: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .anken-page { padding: 8px 12px 20px; }
+  .main-content { padding: 0.75rem 0; }
+}
+
+@media (max-width: 480px) {
+  .anken-page { padding: 6px 8px 16px; }
+}

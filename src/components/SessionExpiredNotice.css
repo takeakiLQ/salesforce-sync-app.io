@@ -1,4 +1,5 @@
 .session-expired {
+  box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -67,4 +68,29 @@
 
 .session-expired__retry:hover {
   background-color: #f1f3f6;
+}
+
+@media (max-width: 480px) {
+  .session-expired {
+    margin: 12px 0;
+    padding: 12px 14px;
+    border-left-width: 5px;
+  }
+
+  .session-expired__body {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .session-expired__title { font-size: 14px; }
+  .session-expired__text { font-size: 12px; }
+
+  /* ボタンは横並びのまま、指で押せる高さを確保する */
+  .session-expired__actions { width: 100%; }
+  .session-expired__button,
+  .session-expired__retry {
+    flex: 1 1 0;
+    padding: 12px 10px;
+    font-size: 13px;
+  }
 }

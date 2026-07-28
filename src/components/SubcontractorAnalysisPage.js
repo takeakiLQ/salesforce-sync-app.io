@@ -8,6 +8,7 @@ import React, {
 import HeaderMenu from "./HeaderMenu";
 import SessionExpiredNotice from "./SessionExpiredNotice";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
+import "./AnalysisPage.css";
 import "./SubcontractorAnalysisPage.css";
 
 const RANGE_ASSIGN = "稼働中案件!A1:ZZ";
@@ -645,6 +646,8 @@ const SubcontractorAnalysisPage = () => {
                   </button>
                 </div>
 
+                {/* 12列あるため、狭い画面では横スクロールさせる */}
+                <div className="anken-table-scroll">
                 <table className="anken-table">
                   <thead>
                     <tr>
@@ -739,6 +742,7 @@ const SubcontractorAnalysisPage = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
 
                 {/* 下部ページネーション */}
                 {renderPagination()}

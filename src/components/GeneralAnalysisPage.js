@@ -1,4 +1,5 @@
 import React from 'react';
+import './AnalysisPage.css';
 import './GeneralAnalysisPage.css';
 import HeaderMenu from './HeaderMenu';
 

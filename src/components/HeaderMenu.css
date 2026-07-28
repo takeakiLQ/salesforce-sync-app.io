@@ -1,9 +1,16 @@
-/* HeaderMenu.css: ヘッダーメニュー共通スタイル */
+/* HeaderMenu.css: ヘッダーとメニューの唯一の定義。
+   以前は HomePage.css / GeneralAnalysisPage.css / SearchPage.css にも
+   同じセレクタが並んでいて、バンドル順で後勝ちしていた。
+   値は統合前に実際に適用されていたものを引き継いでいる。 */
 
 .header {
+  box-sizing: border-box;
+  position: relative; /* .menu の位置基準 */
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.9);
   padding: 1rem 1.5rem;
   border-radius: 8px;
@@ -15,17 +22,19 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0; /* タイトルが長くても user-info を押し出さない */
 }
 
 .hamburger {
+  flex: 0 0 auto;
   font-size: 18px;
+  line-height: 1;
   cursor: pointer;
   user-select: none;
   padding: 4px 8px;
   background-color: transparent;
   border: none;
   color: #333;
-  margin-right: 1rem;
 }
 
 .app-title {
@@ -33,25 +42,32 @@
   font-weight: bold;
   color: #2c3e50;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .user-info {
+  flex: 0 0 auto;
+  max-width: 40%;
   font-size: 16px;
   color: #666;
   font-weight: bold;
   background-color: #f2f2f2;
   padding: 6px 12px;
   border-radius: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .menu {
   position: absolute;
-  top: 60px;
-  right: 24px;
+  top: calc(100% + 6px);
+  left: 10px;
   background: white;
   border: 1px solid #ccc;
   border-radius: 6px;
-  padding: 10px;
+  padding: 8px 16px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
@@ -59,7 +75,10 @@
   z-index: 100;
   width: 160px;
 }
+
 .menu-button {
+  width: 100%;
+  text-align: left;
   background-color: #eee;
   color: #333;
   padding: 6px 12px;
@@ -74,7 +93,7 @@
 .menu-button.logout { background-color: #e74c3c; color: white; }
 .menu-button.logout:hover { background-color: #c0392b; }
 
-/* 現在表示中のページ（インラインstyleから移設） */
+/* 現在表示中のページ */
 .menu-button.disabled,
 .menu-button:disabled {
   background-color: #f5f5f5;
@@ -89,4 +108,48 @@
 .menu-button:focus-visible {
   outline: 2px solid #4285f4;
   outline-offset: 2px;
+}
+
+/* ===============================
+   タブレット
+   =============================== */
+@media (max-width: 768px) {
+  .header {
+    padding: 0.6rem 0.9rem;
+    border-radius: 10px;
+  }
+
+  .app-title { font-size: 18px; }
+  .user-info { font-size: 13px; padding: 4px 10px; border-radius: 6px; }
+  .hamburger { font-size: 22px; padding: 4px 6px; }
+
+  .menu { width: 180px; padding: 8px; }
+  .menu-button { padding: 10px; font-size: 13px; }
+}
+
+/* ===============================
+   スマホ
+   =============================== */
+@media (max-width: 480px) {
+  .header {
+    padding: 0.5rem 0.6rem;
+    gap: 6px;
+  }
+
+  .left-section { gap: 0.35rem; }
+  .app-title { font-size: 15px; line-height: 1.25; }
+  .user-info { font-size: 12px; padding: 3px 8px; max-width: 34%; }
+
+  /* 指で押せる大きさを確保する */
+  .hamburger {
+    font-size: 24px;
+    padding: 6px 10px;
+  }
+
+  .menu {
+    left: 6px;
+    right: 6px;
+    width: auto; /* 画面幅に合わせて広げる */
+  }
+  .menu-button { padding: 12px 10px; font-size: 14px; }
 }
