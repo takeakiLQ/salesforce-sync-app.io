@@ -1,3 +1,26 @@
+# Salesforce Sync (Ver2)
+
+## 公開URL
+
+本ソフトは GitHub Pages で公開しています。
+
+- 公開URL: https://takeakilq.github.io/salesforce-sync-app.io/
+- デプロイ: `npm run deploy`（`predeploy` で `npm run build` が走り、`gh-pages` ブランチへ公開）
+
+## 開発環境
+
+| 項目 | 内容 |
+| --- | --- |
+| マシン | DELL-XPS |
+| ローカルディレクトリ | `D:\React\salesforce_sync_Ver2` |
+| リポジトリ | https://github.com/takeakiLQ/salesforce-sync-app.io |
+| 開発ブランチ | `master`（`origin/master` を追跡） |
+| 公開ブランチ | `gh-pages`（`npm run deploy` により自動生成） |
+
+上記ローカルディレクトリが開発環境であり、リモートリポジトリ `origin` と連携しています。
+
+---
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
