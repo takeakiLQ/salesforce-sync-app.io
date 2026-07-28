@@ -1,0 +1,60 @@
+/* =========================================================
+   複数ページで使う共通パーツ。
+   以前は .clear-btn / .spinner / .loading-text が
+   SearchPage.css と SubcontractorAnalysisPage.css の両方に
+   別々の値で定義されており、バンドル順で後勝ちしていた。
+   ここに一本化し、値は統合前に実際に適用されていたものを引き継ぐ。
+   ========================================================= */
+
+/* --- クリアボタン --- */
+.clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 4px 8px;
+  font-size: var(--fs-sm);
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.clear-btn:hover { background: #dfe3e8; }
+
+.clear-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  color: #9ca3af;
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+  box-shadow: none;
+}
+.clear-btn:disabled:hover {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* --- 読み込み中のスピナー --- */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #d0d5dd;
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: var(--fs-base);
+  color: #555;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}

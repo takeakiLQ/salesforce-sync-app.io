@@ -13,6 +13,7 @@ import ConfirmLink from "./ConfirmLink";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
+import useDebouncedSave from "../utils/useDebouncedSave";
 
 const RANGE_PARTNER = "パートナー情報!A1:ZZ";
 const RANGE_ASSIGN = "稼働中案件!A1:ZZ";
@@ -376,29 +377,9 @@ const AvailabilityPage = () => {
   ]);
 
 
-  useEffect(() => {
-    try {
-      const payload = {
-        selectedPrefs,
-        selectedDistricts,
-        weekSelections,
-        timeFrom,
-        timeTo,
-        ageMin,
-        ageMax,
-        statusFilter,
-        strictMatch,
-        sortKey,
-        sortOrder,
-        tableOrientation,
-        showFavoritesOnly,
-        hasSearched,
-      };
-      localStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(payload));
-    } catch (error) {
-      console.error("Failed to cache availability filters", error);
-    }
-  }, [
+  // 検索条件のキャッシュ。年齢やキーワードを1文字打つたびに
+  // 同期書き込みが走らないよう、入力が落ち着いてから保存する。
+  useDebouncedSave(FILTER_CACHE_KEY, {
     selectedPrefs,
     selectedDistricts,
     weekSelections,
@@ -413,9 +394,7 @@ const AvailabilityPage = () => {
     tableOrientation,
     showFavoritesOnly,
     hasSearched,
-  ]);
-
-
+  });
 
   const [errorMessage, setErrorMessage] = useState("");
   const [authExpired, setAuthExpired] = useState(false);

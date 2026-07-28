@@ -11,6 +11,7 @@ import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } fr
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 import useMediaQuery from "../utils/useMediaQuery";
+import useDebouncedSave from "../utils/useDebouncedSave";
 
 // 2万行まで取得（列オープン）
 const RANGE_EXITED = "離脱パートナー!A1:20000";
@@ -434,28 +435,9 @@ export default function Withdrawn() {
   const [sortKey, setSortKey] = useState(() => pickString("sortKey", "ExitDate__c"));
   const [sortOrder, setSortOrder] = useState(() => pickString("sortOrder", "desc"));
 
-  useEffect(() => {
-    try {
-      const payload = {
-        selectedPrefs,
-        selectedCities,
-        showFavOnly,
-        ageMin,
-        ageMax,
-        keyword,
-        quitDetailKeyword,
-        selectedDai,
-        selectedChu,
-        selectedSho,
-        sortKey,
-        sortOrder,
-        hasSearched,
-      };
-      localStorage.setItem(FILTER_CACHE_KEY, JSON.stringify(payload));
-    } catch (error) {
-      console.error("Failed to cache withdrawn filters", error);
-    }
-  }, [
+  // 検索条件のキャッシュ。キーワードを1文字打つたびに同期書き込みが
+  // 走らないよう、入力が落ち着いてから保存する。
+  useDebouncedSave(FILTER_CACHE_KEY, {
     selectedPrefs,
     selectedCities,
     showFavOnly,
@@ -469,7 +451,7 @@ export default function Withdrawn() {
     sortKey,
     sortOrder,
     hasSearched,
-  ]);
+  });
 
   // ページング
   const PAGE_SIZE = 20;

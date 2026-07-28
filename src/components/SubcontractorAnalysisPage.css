@@ -118,16 +118,7 @@
 .bar-year { background: #1976d2; }
 .bar-dim  { opacity: 0.35; filter: grayscale(0.3); }
 
-/* クリアボタン */
-.clear-btn {
-  background: #e5e7eb;
-  border: 1px solid #d1d5db;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: var(--fs-sm);
-}
-.clear-btn:hover { background: #dfe3e8; }
+/* .clear-btn は src/shared.css に統合済み */
 
 /* 行詳細ヘッダ */
 .detail-header {
@@ -186,18 +177,11 @@
   background: #f6f7f9;
 }
 
-/* スピナー（既存） */
+/* .spinner / .loading-text / @keyframes spin は src/shared.css に統合済み */
 .spinner-wrapper {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; padding: 24px;
 }
-.spinner {
-  width: 40px; height: 40px; border: 4px solid #d0d5dd; border-top-color: #1976d2;
-  border-radius: 50%; animation: spin 1s linear infinite;
-}
-.loading-text { font-size: var(--fs-base); color: #555; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
 
 
