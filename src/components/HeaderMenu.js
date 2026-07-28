@@ -1,91 +1,113 @@
-import React from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { clearSession, clearSheetCache } from "../utils/sheetsApi";
 import "./HeaderMenu.css";
 
 /**
- * 共通ヘッダーメニューコンポーネント
+ * 共通ヘッダーメニュー。
+ * 開閉状態・遷移・ログアウトはすべてこのコンポーネントが持つ。
+ * （開閉stateをページ側に置くと、メニューを開くだけで検索結果全体が再描画されてしまう）
+ *
  * props:
  *   title: ページタイトル
- *   userName: ユーザー名
- *   onNavigateHome: トップに戻るハンドラ
- *   onNavigateAvailability: 空車情報検索ハンドラ
- *   onNavigateWithdrawn: 離脱パートナー検索ハンドラ
- *   onNavigateAnken: 協力会社分析（AnkenPage）ハンドラ
- *   onLogout: ログアウトハンドラ
- *   menuOpen: メニュー表示状態
- *   setMenuOpen: メニュー表示切替関数
+ *   userName: 表示名（省略時は localStorage のメールアドレスから生成）
  */
 
-import { useLocation } from "react-router-dom";
-
 const MENU_LIST = [
-  { label: "トップに戻る", key: "home", path: "/home" },
-  { label: "空車情報検索", key: "availability", path: "/availability" },
-  { label: "離脱パートナー検索", key: "withdrawn", path: "/withdrawn" },
-  { label: "協力会社分析", key: "subcontractor", path: "/subcontractor-analysis" },
-  { label: "案件分析", key: "general", path: "/general-analysis" },
+  { label: "トップに戻る", path: "/home" },
+  { label: "空車情報検索", path: "/availability" },
+  { label: "離脱パートナー検索", path: "/withdrawn" },
+  { label: "協力会社分析", path: "/subcontractor-analysis" },
+  { label: "案件分析", path: "/general-analysis" },
 ];
 
-const HeaderMenu = ({
-  title,
-  userName,
-  onNavigateHome,
-  onLogout,
-  menuOpen,
-  setMenuOpen,
-  onNavigateAvailability,
-  onNavigateWithdrawn,
-  onNavigateAnken
-}) => {
-  const location = useLocation();
-  const currentPath = location.pathname;
+const resolveUserName = () => {
+  const email =
+    (typeof window !== "undefined" && localStorage.getItem("userEmail")) || "未取得";
+  return email.includes("@") ? email.split("@")[0] : email;
+};
 
-  // メニュー外クリックで閉じる
-  React.useEffect(() => {
-    if (!menuOpen) return;
-    const handleClick = (e) => {
-      const menuElem = document.querySelector('.menu');
-      if (menuElem && !menuElem.contains(e.target) && !e.target.classList.contains('hamburger')) {
-        setMenuOpen(false);
+const HeaderMenu = ({ title, userName }) => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const displayName = userName || resolveUserName();
+  const close = useCallback(() => setOpen(false), []);
+
+  // メニュー外クリック / Escape で閉じる
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        close();
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [menuOpen, setMenuOpen]);
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, close]);
 
-  // 各ボタンのハンドラ
-  const handlers = {
-  home: onNavigateHome,
-  availability: onNavigateAvailability,
-  withdrawn: onNavigateWithdrawn,
-  subcontractor: onNavigateAnken,
-  general: typeof window !== 'undefined' && window.location ? () => window.location.hash = '#/general-analysis' : undefined,
+  const handleNavigate = (path) => {
+    close();
+    navigate(path);
+  };
+
+  const handleLogout = () => {
+    close();
+    // 認証情報とシートキャッシュのみ破棄（お気に入り等の設定は残す）
+    clearSession();
+    clearSheetCache();
+    navigate("/");
   };
 
   return (
-    <div className="header">
+    <div className="header" ref={containerRef}>
       <div className="left-section">
-        <div className="hamburger" onClick={() => setMenuOpen && setMenuOpen(v => !v)}>☰</div>
+        <button
+          type="button"
+          className="hamburger"
+          aria-label="メニュー"
+          aria-expanded={open}
+          onClick={() => setOpen((prev) => !prev)}
+        >
+          ☰
+        </button>
         <h1 className="app-title">{title}</h1>
       </div>
-      <div className="user-info">{userName}</div>
-      {menuOpen && (
+      <div className="user-info">{displayName}</div>
+
+      {open && (
         <div className="menu">
-          {MENU_LIST.map(({ label, key, path }) => (
-            <button
-              key={key}
-              className={`menu-button${currentPath === path ? ' disabled' : ''}`}
-              onClick={currentPath === path ? undefined : handlers[key]}
-              disabled={currentPath === path}
-              style={currentPath === path ? { color: '#aaa', background: '#f5f5f5', cursor: 'not-allowed' } : {}}
-            >
-              {label}
-            </button>
-          ))}
-          <button className="menu-button logout" onClick={onLogout}>ログアウト</button>
+          {MENU_LIST.map(({ label, path }) => {
+            const isCurrent = pathname === path;
+            return (
+              <button
+                key={path}
+                type="button"
+                className={`menu-button${isCurrent ? " disabled" : ""}`}
+                onClick={() => handleNavigate(path)}
+                disabled={isCurrent}
+              >
+                {label}
+              </button>
+            );
+          })}
+          <button type="button" className="menu-button logout" onClick={handleLogout}>
+            ログアウト
+          </button>
         </div>
       )}
     </div>
   );
 };
 
-export default HeaderMenu;
+// ページ側の再描画に引きずられないようにする
+export default React.memo(HeaderMenu);

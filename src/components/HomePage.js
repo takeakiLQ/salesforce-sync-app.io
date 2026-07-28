@@ -5,29 +5,11 @@ import { useNavigate } from 'react-router-dom';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const userEmail = localStorage.getItem("userEmail") || "未取得";
-  const [menuOpen, setMenuOpen] = useState(false);
   const [ankenExpanded, setAnkenExpanded] = useState(false);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userEmail");
-    navigate("/");
-  };
 
   return (
     <div className="home-page">
-      <HeaderMenu
-        title="Salesforce Sync App"
-        userName={userEmail.includes('@') ? userEmail.split('@')[0] : userEmail}
-        onNavigateHome={() => navigate("/home")}
-        onNavigateAvailability={() => navigate("/availability")}
-        onNavigateWithdrawn={() => navigate("/withdrawn")}
-        onNavigateAnalysis={() => navigate("/general-analysis")}
-        onLogout={handleLogout}
-        menuOpen={menuOpen}
-        setMenuOpen={setMenuOpen}
-      />
+      <HeaderMenu title="Salesforce Sync App" />
       <div className="data-update-notice">
         Salesforceとのデータ連携は <strong>毎日8時・12時・16時・20時・24時</strong> に実行されます。<br />
         更新作業中は検索結果が正しく表示されない場合があります。<br />

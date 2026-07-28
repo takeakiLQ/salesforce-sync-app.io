@@ -6,7 +6,6 @@ import React, {
   useCallback
 } from "react";
 import HeaderMenu from "./HeaderMenu";
-import { useNavigate } from "react-router-dom";
 import SessionExpiredNotice from "./SessionExpiredNotice";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 import "./SubcontractorAnalysisPage.css";
@@ -48,9 +47,6 @@ const GROUP_ORDER = [
 ];
 
 const SubcontractorAnalysisPage = () => {
-  // ルーティング
-  const navigate = useNavigate();
-
   // 数値変換
   const toNumber = (v) => {
     const n = Number(v);
@@ -76,10 +72,6 @@ const SubcontractorAnalysisPage = () => {
   // ページング用 ref
   const tableTopRef = React.useRef(null);
 
-  // ユーザー名取得
-  const userEmail = localStorage.getItem("userEmail") || "未取得";
-  const userNameOnly = userEmail.includes("@") ? userEmail.split("@")[0] : userEmail;
-  const [menuOpen, setMenuOpen] = useState(false);
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -570,21 +562,7 @@ const SubcontractorAnalysisPage = () => {
   return (
     <div className="anken-page">
       {/* 共通ヘッダー＆メニュー */}
-      <HeaderMenu
-        title="協力会社分析"
-        userName={userNameOnly}
-        menuOpen={menuOpen}
-        setMenuOpen={setMenuOpen}
-        onNavigateHome={() => navigate("/home")}
-        onLogout={() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("userEmail");
-          navigate("/");
-        }}
-        onNavigateAvailability={() => navigate("/availability")}
-        onNavigateWithdrawn={() => navigate("/withdrawn")}
-        onNavigateAnalysis={() => navigate("/general-analysis")}
-      />
+      <HeaderMenu title="協力会社分析" />
 
       {/* 本文 */}
       <div className="main-content">

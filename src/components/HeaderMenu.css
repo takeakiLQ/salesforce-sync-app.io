@@ -73,3 +73,20 @@
 .menu-button:hover { background-color: #f0f0f0; }
 .menu-button.logout { background-color: #e74c3c; color: white; }
 .menu-button.logout:hover { background-color: #c0392b; }
+
+/* 現在表示中のページ（インラインstyleから移設） */
+.menu-button.disabled,
+.menu-button:disabled {
+  background-color: #f5f5f5;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.menu-button.disabled:hover,
+.menu-button:disabled:hover { background-color: #f5f5f5; }
+
+/* キーボード操作時のフォーカス表示 */
+.hamburger:focus-visible,
+.menu-button:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+}

@@ -4,7 +4,6 @@ import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
 import SearchHistoryModal from "./SearchHistoryModal";
 import SessionExpiredNotice from "./SessionExpiredNotice";
-import { useNavigate } from "react-router-dom";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
@@ -215,7 +214,6 @@ export default function Withdrawn() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-  const navigate = useNavigate();
 
   // お気に入り
   const [showFavOnly, setShowFavOnly] = useState(() => pickBoolean("showFavOnly", false));
@@ -338,7 +336,6 @@ export default function Withdrawn() {
   }, [filtered]);
 
   // その他
-  const [menuOpen, setMenuOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [needReauth, setNeedReauth] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -548,19 +545,7 @@ const handleSearch = () => {
   }, [exitedPartners]);
 
 
-/* ====== ナビ ====== */
-const handleLogout = () => {
-  // 認証関連だけ削除（トークンやメール）
-  localStorage.removeItem("token");
-  localStorage.removeItem("userEmail");
-  // localStorage.clear() は使わない！
-  navigate("/");
-};
-
-  const handleNavigateHome = () => navigate("/home");
-
   const userEmail = localStorage.getItem("userEmail") || "未取得";
-  const userNameOnly = userEmail.includes("@") ? userEmail.split("@")[0] : userEmail;
   const effectiveUserId = userEmail && userEmail !== "未取得" ? userEmail : "";
 
   /* ====== モーダル ====== */
@@ -764,18 +749,7 @@ const handleLogout = () => {
 
   return (
     <>
-      <HeaderMenu
-        title="離脱パートナー検索"
-        userName={userNameOnly}
-        menuOpen={menuOpen}
-        setMenuOpen={setMenuOpen}
-        onNavigateHome={handleNavigateHome}
-        onLogout={handleLogout}
-        onNavigateAvailability={() => navigate("/availability")}
-        onNavigateWithdrawn={() => navigate("/withdrawn")}
-        onNavigateAnalysis={() => navigate("/general-analysis")}
-        onNavigateAnken={() => navigate("/subcontractor-analysis")}
-      />
+      <HeaderMenu title="離脱パートナー検索" />
 
       <div className="availability-page">
         {showScrollTop && (

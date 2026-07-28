@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./AvailabilityPage.css";
-import { useNavigate } from "react-router-dom";
 import ReactSlider from "react-slider";
 import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
@@ -41,6 +40,28 @@ const calculateDuration = (start, end) => {
   const diffMinutes = endTotal - startTotal;
   const h = (diffMinutes / 60).toFixed(2);
   return `${parseFloat(h)}h`;
+};
+
+// 日付フォーマッタ
+const formatDate = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+};
+
+const ExpirationField = ({ label, value }) => {
+  const today = new Date();
+  const date = value ? new Date(value) : null;
+  const expired = date ? date < new Date(today.toDateString()) : true;
+  const display = date ? formatDate(value) : "なし";
+  return (
+    <p>
+      {label}：{" "}
+      <strong style={{ color: expired ? "#990000" : "#000000" }}>
+        {display}
+      </strong>
+    </p>
+  );
 };
 
 // ファイル先頭付近に配置
@@ -89,6 +110,76 @@ const LastWorkField = ({ status, lastWorked, lastProject, formatDate }) => {
     </p>
   );
 };
+
+/* ===== スケジュール表（1枚あたり 7×24=168セル） =====
+   カード側の状態（お気に入り等）が変わっても作り直さないよう memo 化する。 */
+const ScheduleTable = React.memo(function ScheduleTable({
+  partner,
+  orientation,
+  weekSelections,
+  timeFrom,
+  timeTo,
+}) {
+  const isHorizontal = orientation === "horizontal";
+  const rowHeaders = isHorizontal ? weekdays : hours;
+  const colHeaders = isHorizontal ? hours : weekdays;
+
+  // ループ内で毎回 parseInt / includes せず、事前に集合と数値に落としておく
+  const selectedDays = React.useMemo(() => new Set(weekSelections), [weekSelections]);
+  const from = parseInt(timeFrom, 10);
+  const to = parseInt(timeTo, 10);
+
+  return (
+    <div className="partner-schedule-container">
+      <div className="schedule-scroll">
+        <table className={`schedule-table ${isHorizontal ? "horizontal" : "vertical"}`}>
+          <thead>
+            <tr>
+              <th>{isHorizontal ? "曜/時" : "時/曜"}</th>
+              {colHeaders.map((hdr) => (
+                <th key={hdr}>{hdr}</th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {rowHeaders.map((rowHdr) => (
+              <tr key={rowHdr}>
+                <td>{rowHdr}</td>
+
+                {colHeaders.map((colHdr) => {
+                  const day = isHorizontal ? rowHdr : colHdr;
+                  const h = isHorizontal ? colHdr : rowHdr;
+                  const key = `${day}_${h}`;
+                  const val = partner[key] || "";
+
+                  const hourNum = parseInt(h, 10);
+                  const matching =
+                    selectedDays.has(day) && hourNum >= from && hourNum <= to;
+
+                  const classNames = [
+                    val === "0" ? "inactive-cell" : val === "1" ? "active-cell" : "",
+                    matching ? "matching-cell" : "",
+                  ]
+                    .join(" ")
+                    .trim();
+
+                  const displayVal = val === "0" ? "空" : val === "1" ? "稼" : "";
+
+                  return (
+                    <td key={key} className={classNames}>
+                      {displayVal}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+});
 
 /* ===== Pagination（重複排除） ===== */
 const Pagination = ({ currentPage, totalPages, onChange }) => {
@@ -149,6 +240,7 @@ const Pagination = ({ currentPage, totalPages, onChange }) => {
 };
 
 const PAGE_SIZE = 20;
+const EMPTY_ASSIGNMENTS = [];
 
 const AvailabilityPage = () => {
   const savedFilters = React.useMemo(() => {
@@ -207,7 +299,7 @@ const AvailabilityPage = () => {
   }, []);
 
   // お気に入り切り替え
-  const toggleFavorite = (id) => {
+  const toggleFavorite = useCallback((id) => {
     setFavoriteIds((prev) => {
       const next = prev.includes(id)
         ? prev.filter((fid) => fid !== id)
@@ -215,7 +307,7 @@ const AvailabilityPage = () => {
       localStorage.setItem("favoritePartners", JSON.stringify(next));
       return next;
     });
-  };
+  }, []);
 
   // モーダル
   /* ▲ */
@@ -230,6 +322,20 @@ const AvailabilityPage = () => {
   const [assignments, setAssignments] = useState([]);
   const partnersReadyRef = useRef(false);
   const pendingSearchRef = useRef(null);
+
+  // パートナーIDごとの案件索引。
+  // カード描画のたびに assignments 全件を filter していたのを1回のグルーピングに置き換える。
+  const assignmentsByPartner = useMemo(() => {
+    const map = new Map();
+    assignments.forEach((a) => {
+      const key = a["Partner__r.ID_18__c"];
+      if (!key) return;
+      const list = map.get(key);
+      if (list) list.push(a);
+      else map.set(key, [a]);
+    });
+    return map;
+  }, [assignments]);
 
   const [filteredPartners, setFilteredPartners] = useState([]);
   const [rawFilteredPartners, setRawFilteredPartners] = useState([]);
@@ -330,28 +436,11 @@ const AvailabilityPage = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [authExpired, setAuthExpired] = useState(false);
 
-  const navigate = useNavigate();
   const userEmail = localStorage.getItem("userEmail") || "未取得";
-  const userNameOnly = userEmail.includes("@")
-    ? userEmail.split("@")[0]
-    : userEmail;
   const effectiveUserId = userEmail && userEmail !== "未取得" ? userEmail : "";
-
-  const handleLogout = () => {
-    // ログイン情報だけ削除（お気に入りは保持する）
-    localStorage.removeItem("token");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userName");
-    navigate("/");
-  };
-
-  const handleNavigateHome = () => {
-    navigate("/home");
-  };
 
   /* ===== データ取得（sheetsApi 側でキャッシュされるため再訪時は即時） ===== */
   const loadData = useCallback(async ({ force = false } = {}) => {
@@ -494,6 +583,12 @@ const AvailabilityPage = () => {
     const from = parseInt(timeFrom);
     const to = parseInt(timeTo);
     const days = weekSelections; // ← 空なら空車判定は適用しない
+    // 対象時間帯はパートナーごとに変わらないので、ループの外で1回だけ組み立てる
+    const targetHours = hours.filter((_, i) => i >= from && i <= to);
+    const statusSet = new Set(statusFilter);
+    const prefSet = new Set(selectedPrefs);
+    const districtSet = new Set(selectedDistricts);
+    const favoriteSet = new Set(favoriteIds);
     const searchParamsSnapshot = {
       selectedPrefs: [...selectedPrefs],
       selectedDistricts: [...selectedDistricts],
@@ -522,23 +617,18 @@ const AvailabilityPage = () => {
     setTimeout(() => {
       const result = partners.filter((p) => {
         // ★お気に入りのみ → ID が含まれていなければ除外
-        if (favoritesOnly && !favoriteIds.includes(p["SF_ID__c"])) return false;
+        if (favoritesOnly && !favoriteSet.has(p["SF_ID__c"])) return false;
 
         // 離脱などは共通で除外
         if (p["Name"]?.includes("支援終了") || p["Name"]?.includes("離脱"))
           return false;
 
         // ステータス（稼働/未稼働）フィルタは共通で適用
-        if (!statusFilter.includes(p["OperatingStatus__c"])) return false;
+        if (!statusSet.has(p["OperatingStatus__c"])) return false;
 
         // 都道府県 / 市区町村は、選択がある場合のみ適用（未選択なら素通し）
-        if (selectedPrefs.length && !selectedPrefs.includes(p["都道府県"]))
-          return false;
-        if (
-          selectedDistricts.length &&
-          !selectedDistricts.includes(p["市区町村"])
-        )
-          return false;
+        if (prefSet.size && !prefSet.has(p["都道府県"])) return false;
+        if (districtSet.size && !districtSet.has(p["市区町村"])) return false;
 
         // 年齢も、境界が指定されている場合のみ適用
         const hasAgeBound = ageMin !== "" || ageMax !== "";
@@ -552,9 +642,7 @@ const AvailabilityPage = () => {
         // 空車ロジック：曜日が選ばれている時だけ判定（空ならスキップ＝全通し）
         if (days.length > 0) {
           const isDayFullyFree = (day) =>
-            hours
-              .filter((_, i) => i >= from && i <= to)
-              .every((h) => (p[`${day}_${h}`] || "").trim() === "0");
+            targetHours.every((h) => (p[`${day}_${h}`] || "").trim() === "0");
 
           if (strictMatch) {
             if (!days.every((d) => isDayFullyFree(d))) return false;
@@ -624,29 +712,6 @@ const AvailabilityPage = () => {
   const summary = (label, arr) =>
     `${label}${arr.length ? `（${arr.length}件選択）` : "（未選択）"}`;
 
-  // 日付フォーマッタ
-  const formatDate = (dateStr) => {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-  };
-
-  const ExpirationField = ({ label, value }) => {
-    const today = new Date();
-    const date = value ? new Date(value) : null;
-    const expired = date ? date < new Date(today.toDateString()) : true;
-    const display = date ? formatDate(value) : "なし";
-    return (
-      <p>
-        {label}：{" "}
-        <strong style={{ color: expired ? "#990000" : "#000000" }}>
-          {display}
-        </strong>
-      </p>
-    );
-  };
-
-  // ページ変更時にトップへ（任意のUX改善）
   const applyHistoryParams = (params = {}) => {
     if (!params || typeof params !== "object") return;
     const hasOwn = (key) => Object.prototype.hasOwnProperty.call(params, key);
@@ -727,18 +792,7 @@ const AvailabilityPage = () => {
 
   return (
     <>
-      <HeaderMenu
-        title="空車情報検索（個人事業主）"
-        userName={userNameOnly}
-        onNavigateHome={handleNavigateHome}
-        onLogout={handleLogout}
-        menuOpen={menuOpen}
-        setMenuOpen={setMenuOpen}
-        onNavigateAvailability={() => navigate("/availability")}
-        onNavigateWithdrawn={() => navigate("/withdrawn")}
-        onNavigateAnalysis={() => navigate("/general-analysis")}
-        onNavigateAnken={() => navigate("/subcontractor-analysis")}
-      />
+      <HeaderMenu title="空車情報検索（個人事業主）" />
 
       <div className="availability-page">
         {showScrollTop && (
@@ -1100,9 +1154,8 @@ const AvailabilityPage = () => {
                 {pagedPartners.map((p) => {
                   const partnerId = p["SF_ID__c"];
                   const isFav = favoriteIds.includes(partnerId);
-                  const partnerAssignments = assignments.filter(
-                    (a) => a["Partner__r.ID_18__c"] === partnerId
-                  );
+                  const partnerAssignments =
+                    assignmentsByPartner.get(partnerId) || EMPTY_ASSIGNMENTS;
                   const bringInContractType = p["bring_in_contract_type__c"];
                   const ankenHistoryCountRaw = Number(p["Anken_Count_Rireki__c"] ?? 0);
                   const normalizedAnkenHistoryCount = Number.isNaN(ankenHistoryCountRaw)
@@ -1396,93 +1449,14 @@ const AvailabilityPage = () => {
                           })}
                         </div>
 
-                        {/* スケジュール表 */}
-                        <div className="partner-schedule-container">
-                          <div className="schedule-scroll">
-                            <table
-                              className={`schedule-table ${
-                                tableOrientation === "horizontal"
-                                  ? "horizontal"
-                                  : "vertical"
-                              }`}
-                            >
-                              <thead>
-                                <tr>
-                                  <th>
-                                    {tableOrientation === "horizontal"
-                                      ? "曜/時"
-                                      : "時/曜"}
-                                  </th>
-                                  {(tableOrientation === "horizontal"
-                                    ? hours
-                                    : weekdays
-                                  ).map((hdr) => (
-                                    <th key={hdr}>{hdr}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-
-                              <tbody>
-                                {(tableOrientation === "horizontal"
-                                  ? weekdays
-                                  : hours
-                                ).map((rowHdr) => (
-                                  <tr key={rowHdr}>
-                                    <td>{rowHdr}</td>
-
-                                    {(tableOrientation === "horizontal"
-                                      ? hours
-                                      : weekdays
-                                    ).map((colHdr) => {
-                                      const day =
-                                        tableOrientation === "horizontal"
-                                          ? rowHdr
-                                          : colHdr;
-                                      const h =
-                                        tableOrientation === "horizontal"
-                                          ? colHdr
-                                          : rowHdr;
-                                      const key = `${day}_${h}`;
-                                      const val = p[key] || "";
-
-                                      const inSelectedDay =
-                                        weekSelections.includes(day);
-                                      const inTimeRange =
-                                        parseInt(h) >= parseInt(timeFrom) &&
-                                        parseInt(h) <= parseInt(timeTo);
-
-                                      const classNames = [
-                                        val === "0"
-                                          ? "inactive-cell"
-                                          : val === "1"
-                                          ? "active-cell"
-                                          : "",
-                                        inSelectedDay && inTimeRange
-                                          ? "matching-cell"
-                                          : "",
-                                      ]
-                                        .join(" ")
-                                        .trim();
-
-                                      const displayVal =
-                                        val === "0"
-                                          ? "空"
-                                          : val === "1"
-                                          ? "稼"
-                                          : "";
-
-                                      return (
-                                        <td key={key} className={classNames}>
-                                          {displayVal}
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
+                        {/* スケジュール表（168セル／枚。memo化して不要な再構築を避ける） */}
+                        <ScheduleTable
+                          partner={p}
+                          orientation={tableOrientation}
+                          weekSelections={weekSelections}
+                          timeFrom={timeFrom}
+                          timeTo={timeTo}
+                        />
                       </div>
                     </div>
                   );
