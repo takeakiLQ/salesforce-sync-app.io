@@ -4,7 +4,7 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 12px;
-  font-size: 14px;
+  font-size: var(--fs-base);
   background: #fff;
 }
 
@@ -17,7 +17,7 @@
 
 .anken-table thead th {
   background: #f8fafc;
-  font-weight: 600;
+  font-weight: 700;
   user-select: none;
 }
 
@@ -69,7 +69,7 @@
   padding: 16px;
   border: 1px solid #e5e7eb;
   background: #fff;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   flex: 1 1 0;
 }
 
@@ -94,13 +94,13 @@
 
 .bar-label {
   width: 120px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .bar-container {
   flex: 1;
   background: #eef2f7;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-left: 8px;
 }
@@ -112,7 +112,7 @@
   display: flex;
   align-items: center;
   padding-left: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .bar-year { background: #1976d2; }
@@ -122,10 +122,10 @@
 .clear-btn {
   background: #e5e7eb;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 4px 8px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 .clear-btn:hover { background: #dfe3e8; }
 
@@ -149,7 +149,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: #344054;
 }
 
@@ -161,8 +161,8 @@
   max-width: 100%;
   padding: 6px 10px;
   border: 1px solid #d0d5dd;
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
 }
 .detail-search__label input:focus {
   outline: none;
@@ -174,8 +174,8 @@
   padding: 6px 10px;
   border: 1px solid #d0d5dd;
   background: #fff;
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
   cursor: pointer;
 }
 .detail-search__clear:disabled {
@@ -195,7 +195,7 @@
   width: 40px; height: 40px; border: 4px solid #d0d5dd; border-top-color: #1976d2;
   border-radius: 50%; animation: spin 1s linear infinite;
 }
-.loading-text { font-size: 14px; color: #555; }
+.loading-text { font-size: var(--fs-base); color: #555; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
@@ -233,7 +233,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #6b7280;
 }
 
@@ -241,18 +241,18 @@
   width: 100%;
   padding: 9px 8px;
   border: 1px solid #d0d5dd;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
 }
 
 .anken-sort__order {
   flex: 0 0 auto;
   padding: 9px 12px;
   border: 1px solid #d0d5dd;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: #fff;
-  font-size: 13px;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   cursor: pointer;
 }
 .anken-sort__order:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -269,7 +269,7 @@
   background: #fff;
   border: 1px solid #c3d3e6;
   border-left: 5px solid #9fb6ce;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 2px 7px rgba(16, 42, 74, 0.14);
 }
 
@@ -283,8 +283,8 @@
 .anken-card__partner {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 16px;
-  font-weight: bold;
+  font-size: var(--fs-md);
+  font-weight: 700;
   overflow-wrap: anywhere;
   line-height: 1.4;
 }
@@ -299,8 +299,8 @@
 .anken-card__rate {
   flex: 0 0 auto;
   text-align: right;
-  font-size: 17px;
-  font-weight: bold;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   color: #123a63;
   line-height: 1.2;
 }
@@ -308,14 +308,14 @@
 
 .anken-card__rate-label {
   display: block;
-  font-size: 10px;
-  font-weight: normal;
+  font-size: var(--fs-xs);
+  font-weight: 400;
   color: #6b7280;
 }
 
 .anken-card__project {
   margin-top: 8px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -336,9 +336,9 @@
 .anken-tag {
   padding: 3px 9px;
   background: #eef2f7;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: bold;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
   color: #405060;
   white-space: nowrap;
 }
@@ -357,32 +357,32 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  font-size: 13px;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: #1f2937;
   text-align: right;
 }
 .anken-card__money .is-negative { color: #c62828; }
 
 .anken-card__label {
-  font-size: 10px;
-  font-weight: normal;
+  font-size: var(--fs-xs);
+  font-weight: 400;
   color: #6b7280;
 }
 
 .anken-card__start {
   margin-top: 10px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #4b5563;
 }
-.anken-card__years { color: #123a63; font-weight: bold; }
+.anken-card__years { color: #123a63; font-weight: 700; }
 
 .anken-card__comment {
   margin-top: 8px;
   padding: 8px 10px;
   background: #f7f9fc;
-  border-radius: 6px;
-  font-size: 12.5px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
   line-height: 1.6;
   color: #444;
   white-space: pre-wrap;
@@ -403,7 +403,7 @@
 
   .anken-table {
     min-width: 900px;
-    font-size: 13px;
+    font-size: var(--fs-base);
   }
 
   .anken-table th,
@@ -417,8 +417,8 @@
     padding: 12px;
   }
 
-  .bar-label { width: 92px; font-size: 13px; }
-  .bar { height: 20px; font-size: 12px; }
+  .bar-label { width: 92px; font-size: var(--fs-base); }
+  .bar { height: 20px; font-size: var(--fs-sm); }
 
   /* 絞り込みは「ラベル＋入力」を1行、クリアを同じ行の右端に置く */
   .detail-header { flex-wrap: wrap; }
@@ -442,18 +442,18 @@
    スマホ
    =============================== */
 @media (max-width: 480px) {
-  .anken-table { min-width: 860px; font-size: 12px; }
+  .anken-table { min-width: 860px; font-size: var(--fs-sm); }
 
   .chart-box { padding: 10px; }
-  .chart-header h3 { font-size: 15px; margin: 0; }
+  .chart-header h3 { font-size: var(--fs-base); margin: 0; }
 
-  .bar-label { width: 72px; font-size: 12px; }
+  .bar-label { width: 72px; font-size: var(--fs-sm); }
   .bar-container { margin-left: 6px; }
   .bar { height: 18px; padding-left: 6px; }
 
-  .detail-header h3 { font-size: 15px; margin: 0; }
+  .detail-header h3 { font-size: var(--fs-base); margin: 0; }
 
   /* 指で押せる大きさを確保する */
   .clear-btn,
-  .detail-search__clear { padding: 8px 12px; font-size: 13px; }
+  .detail-search__clear { padding: 8px 12px; font-size: var(--fs-base); }
 }

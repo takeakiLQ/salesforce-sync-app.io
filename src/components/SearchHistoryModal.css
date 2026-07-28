@@ -12,7 +12,7 @@
   width: min(520px, calc(100vw - 24px));
   max-height: min(80vh, calc(100vh - 24px));
   background: #fff;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
@@ -28,13 +28,13 @@
 
 .search-history-modal__header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-lg);
 }
 
 .search-history-modal__close {
   background: none;
   border: none;
-  font-size: 22px;
+  font-size: var(--fs-xl);
   cursor: pointer;
   line-height: 1;
 }
@@ -52,14 +52,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 .search-history-modal__refresh {
   border: 1px solid #007bff;
   color: #007bff;
   background: #fff;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
   cursor: pointer;
 }
@@ -93,7 +93,7 @@
   display: flex;
   align-items: stretch;
   border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: #fafafa;
 }
@@ -123,8 +123,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-weight: bold;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: var(--fs-base);
   color: #333;
   word-break: break-word;
   max-width: 70%;
@@ -135,7 +135,7 @@
 }
 
 .search-history-modal__datetime {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #888;
   flex-shrink: 0;
 }
@@ -143,7 +143,7 @@
 .search-history-modal__meta {
   display: flex;
   gap: 12px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #555;
   flex-wrap: wrap;
 }
@@ -180,7 +180,7 @@
 }
 
 .search-history-modal__favorite {
-  font-size: 16px;
+  font-size: var(--fs-md);
 }
 
 .search-history-modal__delete {
@@ -224,15 +224,15 @@
   }
 
   .search-history-modal__header { padding: 12px 14px; }
-  .search-history-modal__header h2 { font-size: 16px; }
-  .search-history-modal__close { padding: 4px 8px; font-size: 24px; }
+  .search-history-modal__header h2 { font-size: var(--fs-md); }
+  .search-history-modal__close { padding: 4px 8px; font-size: var(--fs-2xl); }
 
   .search-history-modal__controls {
     padding: 10px 14px;
     flex-wrap: wrap;
     gap: 8px;
   }
-  .search-history-modal__toggle { font-size: 13px; }
+  .search-history-modal__toggle { font-size: var(--fs-base); }
   .search-history-modal__refresh { padding: 8px 14px; }
 
   .search-history-modal__body { padding: 10px 14px 16px; }
@@ -248,6 +248,6 @@
 
   /* 操作ボタンは縦積みのままだと細長くなるので幅を詰める */
   .search-history-modal__actions { flex: 0 0 56px; }
-  .search-history-modal__actions button { padding: 10px 6px; font-size: 12px; }
-  .search-history-modal__favorite { font-size: 18px; }
+  .search-history-modal__actions button { padding: 10px 6px; font-size: var(--fs-sm); }
+  .search-history-modal__favorite { font-size: var(--fs-lg); }
 }

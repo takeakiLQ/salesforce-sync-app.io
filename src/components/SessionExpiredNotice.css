@@ -10,7 +10,7 @@
   padding: 14px 18px;
   border: 1px solid #f0b4b4;
   border-left: 6px solid #c62828;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background-color: #fdf2f2;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
@@ -23,13 +23,13 @@
 .session-expired__title {
   margin-bottom: 4px;
   color: #990000;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
 .session-expired__text {
   color: #5c2b2b;
-  font-size: 13px;
+  font-size: var(--fs-base);
   line-height: 1.6;
 }
 
@@ -42,8 +42,8 @@
 .session-expired__button,
 .session-expired__retry {
   padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.15s ease;
@@ -82,8 +82,8 @@
     min-width: 0;
   }
 
-  .session-expired__title { font-size: 14px; }
-  .session-expired__text { font-size: 12px; }
+  .session-expired__title { font-size: var(--fs-base); }
+  .session-expired__text { font-size: var(--fs-sm); }
 
   /* ボタンは横並びのまま、指で押せる高さを確保する */
   .session-expired__actions { width: 100%; }
@@ -91,6 +91,6 @@
   .session-expired__retry {
     flex: 1 1 0;
     padding: 12px 10px;
-    font-size: 13px;
+    font-size: var(--fs-base);
   }
 }

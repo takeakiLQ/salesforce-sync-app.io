@@ -5,8 +5,15 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Loading from './Loading';
+import PullToRefresh from './PullToRefresh';
 import { clearSheetCache } from '../utils/sheetsApi';
 import './Login.css';
+
+// ログイン画面に出すお知らせ。更新時はここだけ書き換える。
+const NOTICE = {
+  date: '2026年7月28日',
+  body: 'スマートフォンでの表示および操作性を改善しました。',
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -81,9 +88,18 @@ const Login = () => {
 
   return (
     <div className="login-container">
+      {/* 上から下へのスワイプで再読み込み */}
+      <PullToRefresh />
+
       <h2>ログインフォーム</h2>
       
       <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="App Logo" className="login-logo" />
+
+      <section className="login-notice" aria-label="お知らせ">
+        <span className="login-notice__label">お知らせ</span>
+        <span className="login-notice__date">{NOTICE.date}</span>
+        <p className="login-notice__body">{NOTICE.body}</p>
+      </section>
 
       <button className="google-login-button" onClick={login}>
         Googleでログイン

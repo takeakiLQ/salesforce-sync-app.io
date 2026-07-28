@@ -1,15 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0366d6" />
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="Salesforceのパートナー情報・案件情報を検索する社内アプリ"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+
+    <!--
+      本文フォント: Noto Sans JP
+      Windowsのシステムフォント(游ゴシック)はChromeでの描画が細く読みにくいため、
+      ウェブフォントを読み込んで全端末で同じ可読性を確保する。
+      preconnect で接続を先行させ、display=swap で表示のブロックを避ける。
+      ウェイトは実際に使う 400/700 のみ。
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/

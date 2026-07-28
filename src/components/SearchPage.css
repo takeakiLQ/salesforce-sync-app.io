@@ -7,7 +7,7 @@
 /* AvailabilityPage.css */
 
 body {
-  font-family: 'Noto Sans JP', sans-serif;
+  /* font-family は index.css のトークンに集約（重複指定を削除） */
   background: linear-gradient(to bottom right, #ffffff, #ecf1cc);
   color: #333;
   min-height: 100vh;
@@ -22,7 +22,7 @@ body {
 /* ヘッダー／メニューのスタイルは HeaderMenu.css に統合済み（重複定義を削除） */
 
 .page-title {
-  font-size: 20px;
+  font-size: var(--fs-xl);
   margin: 0;
 }
 
@@ -31,9 +31,9 @@ body {
   background-color: #ffeaea;
   border: 1px solid #ffc2c2;
   padding: 6px 8px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   margin-bottom: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .sort-controls select {
@@ -41,21 +41,21 @@ body {
   justify-content: center; 
   align-items: center;
   border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
 }
 
 /* カスタム並び順ボタン */
 .order-toggle {
   padding: 6px 14px;
-  font-size: 14px;
+  font-size: var(--fs-base);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background-color: #f1f1f1;
   color: #111;
   cursor: pointer;
   transition: background-color 0.2s;
-  font-weight: bold;
+  font-weight: 700;
 }
 .order-toggle:hover { background-color: #e0e0e0; }
 .order-toggle.asc { background-color: #8fbcff; }
@@ -68,10 +68,10 @@ body {
 .result-count {
   background-color: #e6f0ff;
   border: 1px solid #0366d6;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   padding: 8px 16px;
-  font-size: 15px;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: #003366;
   text-align: center;
   max-width: 260px;
@@ -91,15 +91,15 @@ body {
   padding: 10px 14px;
   background-color: #c0dafc;
   border: 1px solid #cccccc;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .search-summary__text {
   flex: 1 1 240px;
   min-width: 0;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: #123a63;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -108,10 +108,10 @@ body {
 .search-summary__toggle {
   flex: 0 0 auto;
   padding: 9px 16px;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   border: 1px solid #0366d6;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background-color: #ffffff;
   color: #0366d6;
   cursor: pointer;
@@ -132,20 +132,20 @@ body {
   padding: 10px 14px;
   background-color: #f4f7fb;
   border: 1px solid #d8e2ef;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .result-toolbar__count {
-  font-size: 15px;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: #003366;
 }
-.result-toolbar__count strong { font-size: 19px; }
+.result-toolbar__count strong { font-size: var(--fs-lg); }
 
 .result-toolbar__range {
   margin-left: 6px;
-  font-size: 12px;
-  font-weight: normal;
+  font-size: var(--fs-sm);
+  font-weight: 400;
   color: #4b5563;
 }
 
@@ -168,8 +168,8 @@ body {
 /* 「（推奨）」は画面幅で出し分ける（PC=横方向／スマホ=縦方向） */
 .seg-recommend {
   margin-left: 4px;
-  font-size: 11px;
-  font-weight: normal;
+  font-size: var(--fs-xs);
+  font-weight: 400;
   opacity: 0.8;
 }
 .seg-recommend--narrow { display: none; }
@@ -189,7 +189,7 @@ body {
   padding: 24px;
   background-color: #c0dafc;
   border: 1px solid #cccccc;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   margin-bottom: 32px;
@@ -198,8 +198,8 @@ body {
 .search-panel label {
   display: flex;
   flex-direction: column;
-  font-weight: bold;
-  font-size: 15px;
+  font-weight: 700;
+  font-size: var(--fs-base);
   align-items: center;   /* 横方向の中央揃え */
   text-align: center;    /* テキストも中央揃えに */
 }
@@ -208,7 +208,7 @@ body {
 .search-panel input[type="text"],
 .search-panel input[type="number"],
 .search-panel textarea {
-  font-size: 16px;
+  font-size: var(--fs-md);
   padding: 10px;
 }
 
@@ -216,7 +216,7 @@ body {
   height: 170px;
   width: 300px;
   padding: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid #aaa;
   overflow-y: auto;
   box-sizing: border-box;
@@ -230,14 +230,14 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .weekday-checkboxes label {
   display: flex;
   align-items: center;
   padding: 4px 10px;
   background: #f0f0f0;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   border: 1px solid #ccc;
 }
@@ -245,26 +245,44 @@ body {
 .weekday-checkboxes input[type="checkbox"]:checked + span {
   background: #0366d6;
   color: white;
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .search-panel button {
   padding: 10px 16px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   transition: 0.2s ease-in-out;
 }
 .search-panel button:hover { opacity: 0.85; }
+
+/* 主ボタン（検索・決定・適用）。
+   形の指定を .search-panel 配下に置いていたため、
+   モーダル内の「決定」「適用」だけ角丸も余白も付かず
+   直角の四角になっていた。ここで単体でも成立させる。 */
+button.search,
+button.link {
+  padding: 10px 16px;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
+}
+button.search:hover,
+button.link:hover { opacity: 0.85; }
+
 button.search { background-color: #0366d6; color: white; }
 button.link { background-color: #28a745; color: white; }
 
 .keyword-input {
   /* 幅を伸ばして使う入力なので、padding+border を含めた幅で計算させる */
   box-sizing: border-box;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid #ccc;
   padding: 6px 8px;
 }
@@ -286,7 +304,7 @@ button.link { background-color: #28a745; color: white; }
   padding: 20px;
   margin-bottom: 20px;
   background: #f7f2b2;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   width: 100%;
   max-width: 3800px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -330,23 +348,23 @@ button.link { background-color: #28a745; color: white; }
 }
 
 .kana-name {
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #777;
   margin-bottom: 2px;
   line-height: 1;
 }
 
 .name-link {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   color: #003366;
   text-decoration: none;
 }
 .name-link:hover { text-decoration: underline; }
 
 .phone-link {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   color: #0055aa;
   text-decoration: none;
 }
@@ -361,9 +379,9 @@ button.link { background-color: #28a745; color: white; }
 
 .favorite-search {
   padding: 10px 16px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   background-color: #f59e0b; /* オレンジ系 */
@@ -383,7 +401,7 @@ button.link { background-color: #28a745; color: white; }
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
-  font-size: 14px;
+  font-size: var(--fs-base);
   table-layout: fixed;
 }
 
@@ -401,7 +419,7 @@ button.link { background-color: #28a745; color: white; }
   word-wrap: break-word;
   padding: 6px;
   min-width: clamp(28px, 3.8vw, 36px); /* PCで収めやすい幅 */
-  font-size: 13px;                      /* デフォルトは少し小さめ */
+  font-size: var(--fs-base);                      /* デフォルトは少し小さめ */
 }
 
 /* モバイル（768px以下）はスクロール可能に */
@@ -418,7 +436,7 @@ button.link { background-color: #28a745; color: white; }
   .schedule-table th,
   .schedule-table td {
     min-width: 40px; /* モバイルは見やすい幅 */
-    font-size: 12px; /* モバイルは文字を小さめに */
+    font-size: var(--fs-sm); /* モバイルは文字を小さめに */
     padding: 4px;
   }
 }
@@ -439,15 +457,15 @@ button.link { background-color: #28a745; color: white; }
 /* 軸セル（先頭セル）の共通見た目（後で横/縦で上書き） */
 .schedule-table thead th { color: #333; font-weight: 700; }
 .schedule-table tbody td:first-child {
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
   border: 1px solid #888;
   padding: 8px;
-  font-size: 14px;
+  font-size: var(--fs-base);
 }
 
 @media (max-width: 768px) {
-  .schedule-table { font-size: 12px; }
+  .schedule-table { font-size: var(--fs-sm); }
   .schedule-table th, .schedule-table td {
     padding: 4.5px;
     min-width: clamp(28px, 5.2vw, 54px);
@@ -586,11 +604,11 @@ button.link { background-color: #28a745; color: white; }
   background: #eef;
   padding: 10px;
   margin-top: 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 .assignment-info a {
   color: #0366d6;
-  font-weight: bold;
+  font-weight: 700;
   text-decoration: none;
 }
 .assignment-info a:hover { text-decoration: underline; }
@@ -620,11 +638,11 @@ button.link { background-color: #28a745; color: white; }
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   align-items: flex-start;
   margin-top: 10px;
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background-color: #f9f9f9;
   border: 1px solid #ddd;
 }
@@ -639,7 +657,7 @@ button.link { background-color: #28a745; color: white; }
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: normal;
+  font-weight: 400;
   cursor: pointer;
 }
 .strict-match-filter { display: flex; align-items: center; }
@@ -659,7 +677,7 @@ button.link { background-color: #28a745; color: white; }
   margin-top: 30px;
   padding: 12px 16px;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background-color: #f9f9f9;
 }
 
@@ -689,7 +707,7 @@ button.link { background-color: #28a745; color: white; }
   flex-direction: column;
   justify-content: flex-end;
 }
-.weekday-label { font-weight: bold; margin-bottom: 4px; }
+.weekday-label { font-weight: 700; margin-bottom: 4px; }
 
 .weekday-checkboxes-inline { display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -698,11 +716,11 @@ button.link { background-color: #28a745; color: white; }
   align-items: center;
   justify-content: center; 
   padding: 4px 8px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   height: 32px;
   background-color: #cccecb96;
   border: 1px solid #c5c3c3;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -736,9 +754,9 @@ button.link { background-color: #28a745; color: white; }
 }
 .weekday-presets button {
   padding: 6px 12px;
-  font-size: 14px;
+  font-size: var(--fs-base);
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background-color: #f1f1f1;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -748,8 +766,8 @@ button.link { background-color: #28a745; color: white; }
 @media screen and (max-width: 768px) {
   .availability-page { padding: 10px; }
   .search-panel { grid-template-columns: 1fr; gap: 12px; }
-  .search-panel label, .status-filters { font-size: 13px; }
-  .search-panel button { padding: 8px 12px; font-size: 13px; }
+  .search-panel label, .status-filters { font-size: var(--fs-base); }
+  .search-panel button { padding: 8px 12px; font-size: var(--fs-base); }
 
   .city-and-weekdays { flex-direction: column; align-items: stretch; gap: 12px; }
   .city-select-row { flex-direction: column; align-items: stretch; }
@@ -760,13 +778,13 @@ button.link { background-color: #28a745; color: white; }
   .partner-info-grid { grid-template-columns: 1fr; }
   .partner-schedule-container { width: 100%; }
 
-  .schedule-table { font-size: 11px; overflow-x: auto; display: block; }
+  .schedule-table { font-size: var(--fs-xs); overflow-x: auto; display: block; }
 
-  .assignment-info { font-size: 13px; }
+  .assignment-info { font-size: var(--fs-base); }
 
   /* 結果テーブル（離脱パートナー）は横スクロールに任せる */
   .result-table th,
-  .result-table td { padding: 8px 10px; font-size: 13px; }
+  .result-table td { padding: 8px 10px; font-size: var(--fs-base); }
 }
 
 /* ===============================
@@ -785,14 +803,14 @@ button.link { background-color: #28a745; color: white; }
   .search-button-wrapper .history-button,
   .favorite-search {
     padding: 13px 14px;
-    font-size: 14px;
+    font-size: var(--fs-base);
   }
 
   /* 曜日ボタンは指で押せる幅を確保しつつ7つ並べる */
   .weekday-checkboxes-inline { gap: 6px; }
   .weekday-checkboxes-inline .weekday-btn {
     padding: 10px 0;
-    font-size: 15px;
+    font-size: var(--fs-base);
     flex: 1 1 calc(25% - 6px);
     min-width: 0;
   }
@@ -804,13 +822,13 @@ button.link { background-color: #28a745; color: white; }
     width: 30px;
     top: -8px;
   }
-  .thumb-label { font-size: 12px; top: -28px; }
+  .thumb-label { font-size: var(--fs-sm); top: -28px; }
 
   .time-range-section { margin: 34px 0 24px; }
 
   .result-count {
     max-width: none;
-    font-size: 13px;
+    font-size: var(--fs-base);
     padding: 8px 12px;
   }
 
@@ -818,7 +836,7 @@ button.link { background-color: #28a745; color: white; }
     gap: 8px;
     padding: 10px 12px;
   }
-  .search-summary__text { font-size: 13px; flex: 1 1 100%; }
+  .search-summary__text { font-size: var(--fs-base); flex: 1 1 100%; }
   .search-summary__toggle { flex: 1 1 100%; padding: 11px 14px; }
 
   /* 縦に伸びないよう、3行にきっちり収める：
@@ -833,12 +851,12 @@ button.link { background-color: #28a745; color: white; }
 
   .result-toolbar__count {
     flex: 1 1 100%;
-    font-size: 13px;
+    font-size: var(--fs-base);
   }
-  .result-toolbar__count strong { font-size: 17px; }
+  .result-toolbar__count strong { font-size: var(--fs-lg); }
   .result-toolbar__range {
     margin-left: 4px;
-    font-size: 11px;
+    font-size: var(--fs-xs);
   }
 
   .result-toolbar__controls {
@@ -854,12 +872,12 @@ button.link { background-color: #28a745; color: white; }
     flex: 1 1 auto;
     min-width: 0;
     padding: 9px 8px;
-    font-size: 14px;
+    font-size: var(--fs-base);
   }
   .result-toolbar .sort-controls .order-toggle {
     flex: 0 0 auto;
     padding: 9px 12px;
-    font-size: 13px;
+    font-size: var(--fs-base);
   }
 
   .result-toolbar .table-orientation-controls {
@@ -869,16 +887,16 @@ button.link { background-color: #28a745; color: white; }
   }
   .result-toolbar .table-orientation-controls .label {
     flex: 0 0 auto;
-    font-size: 13px;
+    font-size: var(--fs-base);
   }
   .result-toolbar .table-orientation-controls .seg {
     flex: 1 1 0;
     min-width: 0;
     padding: 9px 4px;
-    font-size: 13px;
+    font-size: var(--fs-base);
     white-space: nowrap;
   }
-  .seg-recommend { margin-left: 2px; font-size: 10px; }
+  .seg-recommend { margin-left: 2px; font-size: var(--fs-xs); }
 
   .partner-card { padding: 12px; }
   .partner-card__sticky {
@@ -887,7 +905,7 @@ button.link { background-color: #28a745; color: white; }
   }
 
   .result-table th,
-  .result-table td { padding: 7px 8px; font-size: 12px; }
+  .result-table td { padding: 7px 8px; font-size: var(--fs-sm); }
 
   /* ホバーで浮かせない（タップ後に残るため） */
   .function-card:hover { transform: none; }
@@ -904,15 +922,15 @@ button.link { background-color: #28a745; color: white; }
 .time-select {
   display: flex;
   flex-direction: column;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--fs-md);
+  font-weight: 400;
   align-items: center;  
 }
 .time-select select {
-  font-size: 16px;
+  font-size: var(--fs-md);
   padding: 8px 12px;
   width: 130px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid #ccc;
   background-color: #fff;
   box-shadow: 1px 1px 2px rgba(0,0,0,0.05);
@@ -935,19 +953,19 @@ button.link { background-color: #28a745; color: white; }
   top: -5px;
   box-shadow: 0 0 2px rgba(0,0,0,0.3);
 }
-.time-slider .track { top: 0; bottom: 0; background: #ddd; height: 14px; border-radius: 10px; }
+.time-slider .track { top: 0; bottom: 0; background: #ddd; height: 14px; border-radius: var(--radius-lg); }
 .time-slider .track-1 { background: #007bff; }
 .thumb-label {
   position: absolute;
   top: -30px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 14px;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: #333;
   background-color: #fff;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 0 2px rgba(0,0,0,0.2);
 }
 
@@ -955,11 +973,11 @@ button.link { background-color: #28a745; color: white; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--fs-md);
+  font-weight: 400;
   padding: 8px 16px;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background-color: #f5f5f5;
   color: #333;
   cursor: pointer;
@@ -987,9 +1005,9 @@ button.link { background-color: #28a745; color: white; }
 }
 .search-button-wrapper .search {
   padding: 10px 16px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
   border: none;
   cursor: pointer;
   background-color: #0366d6;
@@ -998,9 +1016,9 @@ button.link { background-color: #28a745; color: white; }
 
 .search-button-wrapper .history-button {
   padding: 10px 16px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 4px;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
   border: 1px solid #0366d6;
   background-color: #ffffff;
   color: #0366d6;
@@ -1031,7 +1049,7 @@ button.link { background-color: #28a745; color: white; }
   background: #ffffff;
   border: 1px solid #c3d3e6;
   border-left: 5px solid #9fb6ce;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 2px 7px rgba(16, 42, 74, 0.14);
 }
 
@@ -1053,14 +1071,14 @@ button.link { background-color: #28a745; color: white; }
 }
 
 .wd-card__name .name-link {
-  font-size: 17px;
-  font-weight: bold;
+  font-size: var(--fs-lg);
+  font-weight: 700;
 }
 
 .wd-card__meta {
   margin-left: 8px;
-  font-size: 13px;
-  font-weight: normal;
+  font-size: var(--fs-base);
+  font-weight: 400;
   color: #555;
   white-space: nowrap;
 }
@@ -1069,9 +1087,9 @@ button.link { background-color: #28a745; color: white; }
 .wd-badge {
   flex: 0 0 auto;
   padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: bold;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
   white-space: nowrap;
 }
 .wd-badge--ok { background: #e3f6e8; color: #14682c; border: 1px solid #a8dcb6; }
@@ -1081,14 +1099,14 @@ button.link { background-color: #28a745; color: white; }
   display: flex;
   gap: 8px;
   margin-top: 8px;
-  font-size: 13px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
 .wd-card__label {
   flex: 0 0 52px;
   color: #6b7280;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   padding-top: 2px;
 }
 
@@ -1100,12 +1118,12 @@ button.link { background-color: #28a745; color: white; }
 }
 
 .wd-card__phone {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: var(--fs-md);
+  font-weight: 700;
   color: #0055aa;
 }
 
-.wd-card__missing { color: #990000; font-weight: bold; }
+.wd-card__missing { color: #990000; font-weight: 700; }
 
 /* 日付は3つ横並び */
 .wd-card__dates {
@@ -1114,7 +1132,7 @@ button.link { background-color: #28a745; color: white; }
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid #eef2f7;
-  font-size: 13px;
+  font-size: var(--fs-base);
 }
 .wd-card__dates > div {
   flex: 1 1 0;
@@ -1132,7 +1150,7 @@ button.link { background-color: #28a745; color: white; }
 }
 
 .wd-card__reason-line {
-  font-size: 13px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   color: #333;
   overflow-wrap: anywhere;
@@ -1142,8 +1160,8 @@ button.link { background-color: #28a745; color: white; }
   margin-top: 6px;
   padding: 8px 10px;
   background: #f7f9fc;
-  border-radius: 6px;
-  font-size: 12.5px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
   line-height: 1.6;
   color: #444;
   white-space: pre-wrap;
@@ -1164,9 +1182,9 @@ button.link { background-color: #28a745; color: white; }
 .info-trigger:focus-visible {
   outline: 2px solid #4285f4;
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
-.info-icon { font-size: 16px; line-height: 1; user-select: none; }
+.info-icon { font-size: var(--fs-md); line-height: 1; user-select: none; }
 .tooltip-content {
   display: none;
   position: absolute;
@@ -1180,9 +1198,9 @@ button.link { background-color: #28a745; color: white; }
   background-color: #ffffff;
   color: #333;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -1217,18 +1235,18 @@ button.link { background-color: #28a745; color: white; }
   }
 
   .info-trigger { padding: 6px 8px; }
-  .info-icon { font-size: 18px; }
+  .info-icon { font-size: var(--fs-lg); }
 }
 
 .table-orientation-controls {
   display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap;
 }
-.table-orientation-controls .label { font-weight: 600; }
+.table-orientation-controls .label { font-weight: 700; }
 .table-orientation-controls .seg {
-  padding: 6px 10px; border: 1px solid #ccc; border-radius: 8px; background: #f8f8f8;
+  padding: 6px 10px; border: 1px solid #ccc; border-radius: var(--radius-md); background: #f8f8f8;
 }
 .table-orientation-controls .seg.active {
-  background: #e9f0ff; border-color: #7da4ff; font-weight: 600;
+  background: #e9f0ff; border-color: #7da4ff; font-weight: 700;
 }
 
 /* テーブルの罫線・ホバー・ヘッダ（別テーブル用） */
@@ -1239,12 +1257,12 @@ button.link { background-color: #28a745; color: white; }
 }
 .result-table thead th {
   position: sticky; top: 0; background: #fafafa; z-index: 1;
-  font-weight: 600; white-space: nowrap;
+  font-weight: 700; white-space: nowrap;
 }
 .result-table tbody tr:hover { background: #f5faff; }
 
 /* 氏名セル内のかな表示（小さく薄く） */
-.kana-small { font-size: 12px; color: #6b7280; line-height: 1.1; margin-bottom: 2px; }
+.kana-small { font-size: var(--fs-sm); color: #6b7280; line-height: 1.1; margin-bottom: 2px; }
 /* 氏名リンク */
 .result-table a.name-link { color: #0b63ce; text-decoration: none; }
 .result-table a.name-link:hover { text-decoration: underline; }
@@ -1260,7 +1278,7 @@ button.link { background-color: #28a745; color: white; }
   animation: spin .9s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 14px; color: #374151; }
+.loading-text { font-size: var(--fs-base); color: #374151; }
 
 /* ページネーションは Pagination.css に統合済み */
 
@@ -1272,7 +1290,7 @@ button.link { background-color: #28a745; color: white; }
   flex: 0 0 70px;   /* ここがポイント */
   padding: 6px 8px;
   border: 1px solid #ccc;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-sizing: border-box;
 }
 .age-input:focus {
@@ -1299,7 +1317,7 @@ button.link { background-color: #28a745; color: white; }
 }
 
 .favorite-btn {
-  font-size: 20px;          /* 大きく目立たせる */
+  font-size: var(--fs-xl);          /* 大きく目立たせる */
   border: none;
   background: none;
   cursor: pointer;
@@ -1323,7 +1341,7 @@ button.link { background-color: #28a745; color: white; }
 .star-btn {
   background: transparent;
   border: none;
-  font-size: 18px;
+  font-size: var(--fs-lg);
   cursor: pointer;
   line-height: 1;
 }

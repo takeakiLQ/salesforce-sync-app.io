@@ -9,7 +9,6 @@
   /* 固定の height だと中身があふれたとき上側が見えなくなるため min-height にする */
   min-height: 100vh;
   padding: 24px 16px;
-  font-family: Arial, sans-serif;
   text-align: center;
   /* 元の背景色を削除し、グラデーションに変更 */
   background: linear-gradient(to bottom right, #ffffff, #ecf1cc);
@@ -19,7 +18,7 @@
 .loading-container h2 {
   margin-bottom: 8px;
   color: #03327c;
-  font-size: 22px;
+  font-size: var(--fs-xl);
 }
 
 .loading-spinner {
@@ -39,7 +38,7 @@
 
 /* 計算中テキストのスタイル */
 .loading-container p {
-  font-size: 1.2em;
+  font-size: var(--fs-lg);
   color: #555;
-  font-weight: bold;
+  font-weight: 700;
 }

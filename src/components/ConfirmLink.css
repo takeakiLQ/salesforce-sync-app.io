@@ -14,14 +14,14 @@
   width: min(400px, 100%);
   padding: 20px;
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
   text-align: center;
 }
 
 .confirm-link__title {
-  font-size: 17px;
-  font-weight: bold;
+  font-size: var(--fs-lg);
+  font-weight: 700;
   color: #1f2937;
   overflow-wrap: anywhere;
 }
@@ -31,9 +31,9 @@
   padding: 8px 10px;
   background: #f4f7fb;
   border: 1px solid #d8e2ef;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: bold;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
+  font-weight: 700;
   color: #123a63;
   overflow-wrap: anywhere;
   line-height: 1.5;
@@ -41,7 +41,7 @@
 
 .confirm-link__note {
   margin-top: 10px;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: #6b7280;
 }
 
@@ -55,9 +55,9 @@
 .confirm-link__no {
   flex: 1 1 0;
   padding: 12px 10px;
-  border-radius: 6px;
-  font-size: 15px;
-  font-weight: bold;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
+  font-weight: 700;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -84,6 +84,6 @@
 
 @media (max-width: 480px) {
   .confirm-link { padding: 16px; }
-  .confirm-link__title { font-size: 16px; }
+  .confirm-link__title { font-size: var(--fs-md); }
   .confirm-link__actions { margin-top: 16px; }
 }

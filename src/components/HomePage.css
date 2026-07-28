@@ -7,13 +7,13 @@
 
 .card-container {
   background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
   margin-top: 1rem;
 }
 .card-title {
-  font-size: 18px;
+  font-size: var(--fs-lg);
   margin-bottom: 1rem;
   border-left: 5px solid #a4c639;
   padding-left: 0.75rem;
@@ -33,7 +33,7 @@
 }
 .function-card {
   background-color: #fff9c4;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 3px 8px rgba(251, 192, 45, 0.3);
   padding: 1rem;
   cursor: pointer;
@@ -46,23 +46,23 @@
 }
 .function-title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-lg);
   color: #333;
 }
 .function-text {
-  font-size: 13px;
+  font-size: var(--fs-base);
   color: #666;
   margin-top: 0.5rem;
 }
 .highlight {
   color: #007bff;
-  font-weight: bold;
+  font-weight: 700;
 }
 .sub-card {
   background-color: #f5f5f5;
   border-left: 4px solid #fdd835;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 6px;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease-in-out;
@@ -74,12 +74,12 @@
   transform: translateY(-2px);
 }
 .sub-card-title {
-  font-size: 0.95rem;
-  font-weight: bold;
+  font-size: var(--fs-base);
+  font-weight: 700;
   margin: 0 0 4px 0;
 }
 .sub-card-text {
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   margin: 0;
 }
 .data-update-notice {
@@ -87,15 +87,15 @@
   padding: 1rem 1.25rem;
   background-color: #e9f0fb;
   border-left: 5px solid #2b7bb9;
-  border-radius: 8px;
-  font-size: 0.95rem;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
   color: #2c3e50;
   line-height: 1.7;
   box-shadow: inset 0 0 3px rgba(43, 123, 185, 0.15);
 }
 .data-update-notice strong {
   color: #1a5276;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* ===============================
@@ -107,12 +107,12 @@
   .data-update-notice {
     margin: 1rem 0;
     padding: 0.85rem 1rem;
-    font-size: 0.85rem;
+    font-size: var(--fs-sm);
     line-height: 1.6;
   }
 
   .card-container { padding: 1rem; }
-  .card-title { font-size: 16px; }
+  .card-title { font-size: var(--fs-md); }
 
   /* 1列に積み、幅いっぱいに使う */
   .card-block { max-width: none; }
@@ -126,23 +126,23 @@
 
   .data-update-notice {
     padding: 0.75rem 0.85rem;
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     border-left-width: 4px;
   }
 
   .card-container {
     padding: 0.85rem;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
   }
 
   /* タップ領域を広めに取る */
   .function-card { padding: 0.9rem 1rem; }
-  .function-title { font-size: 16px; }
-  .function-text { font-size: 12px; }
+  .function-title { font-size: var(--fs-md); }
+  .function-text { font-size: var(--fs-sm); }
 
   .sub-card { padding: 12px; }
-  .sub-card-title { font-size: 0.9rem; }
-  .sub-card-text { font-size: 0.78rem; }
+  .sub-card-title { font-size: var(--fs-base); }
+  .sub-card-text { font-size: var(--fs-xs); }
 
   /* スマホではホバーで浮かせない（タップ後に浮いたままになるため） */
   .function-card:hover,

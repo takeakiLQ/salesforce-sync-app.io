@@ -15,10 +15,10 @@
 .page-btn {
   border: 1px solid #e5e7eb;
   background: #fff;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 6px 10px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: #333;
 }
 
@@ -46,7 +46,7 @@
 }
 
 .page-ellipsis { padding: 0 6px; color: #6b7280; }
-.page-info { margin-left: 6px; color: #666; font-size: 12px; }
+.page-info { margin-left: 6px; color: #666; font-size: var(--fs-sm); }
 
 /* スマホ: 指で押せる大きさを確保し、折り返しても詰まらないようにする */
 @media (max-width: 480px) {
@@ -57,7 +57,7 @@
 
   .page-btn {
     padding: 8px 12px;
-    font-size: 13px;
+    font-size: var(--fs-base);
     min-width: 40px;
   }
 

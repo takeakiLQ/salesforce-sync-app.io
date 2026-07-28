@@ -46,8 +46,8 @@
 }
 
 .scroll-to-top__label {
-  font-size: 12px;
-  font-weight: bold;
+  font-size: var(--fs-sm);
+  font-weight: 700;
   letter-spacing: 0.09em;
   line-height: 1;
 }
@@ -61,7 +61,7 @@
   }
 
   .scroll-to-top__icon { width: 22px; height: 22px; }
-  .scroll-to-top__label { font-size: 11px; }
+  .scroll-to-top__label { font-size: var(--fs-xs); }
 }
 
 /* 動きを減らす設定の環境では浮き上がりを止める */
