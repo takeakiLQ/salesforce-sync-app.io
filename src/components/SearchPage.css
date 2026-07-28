@@ -1,3 +1,9 @@
+/* 空車情報検索・離脱パートナー検索の共通スタイル。
+   両ページは同じ .availability-page / .search-panel / .result-table 系の
+   クラスを使うため、1ファイルに統合している。
+   （以前は AvailabilityPage.css と Withdrawn.css に1000行以上が二重定義され、
+    バンドル順で後勝ちする状態だった） */
+
 /* AvailabilityPage.css */
 
 body {
@@ -140,8 +146,8 @@ body {
   flex-direction: column;
   font-weight: bold;
   font-size: 15px;
-  align-items: center;   /* ← 横方向の中央揃え */
-  text-align: center;    /* ← テキストも中央揃えに */
+  align-items: center;   /* 横方向の中央揃え */
+  text-align: center;    /* テキストも中央揃えに */
 }
 
 .search-panel select,
@@ -207,11 +213,10 @@ button.link { background-color: #28a745; color: white; }
   padding: 6px 8px;
 }
 
-.keyword-input:focus { 
+.keyword-input:focus {
   outline: none;
   border-color: #4a90e2;
-  box-shadow: 0 0 4px rgba(74,144,226,0.5);
-
+  box-shadow: 0 0 4px rgba(74, 144, 226, 0.5);
 }
 
 .partner-cards {
@@ -970,7 +975,6 @@ button.link { background-color: #28a745; color: white; }
 .page-ellipsis { padding: 0 6px; color: #6b7280; }
 
 /* 年齢入力の幅をコンパクトに */
-/* 年齢入力の幅をコンパクトに */
 .age-input {
   width: 70px;
   min-width: 70px;
@@ -996,6 +1000,12 @@ button.link { background-color: #28a745; color: white; }
   justify-content: center;
   align-items: center;
   gap: 6px;
+}
+
+.age-input-row .clear-btn {
+  margin-left: 0;       /* JSXで marginLeft: 8 を指定している場合でも上書き */
+  flex: 0 0 auto;
+  order: 2;             /* 入力枠の下に回って並ぶように順序を後ろに */
 }
 
 .favorite-btn {
@@ -1045,3 +1055,7 @@ button.link { background-color: #28a745; color: white; }
   display: inline-block !important;
 }
 
+.weekday-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

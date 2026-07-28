@@ -1,12 +1,13 @@
 // AvailabilityPage.js
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import "./AvailabilityPage.css";
+import "./SearchPage.css";
 import ReactSlider from "react-slider";
 import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
 import SearchHistoryModal from "./SearchHistoryModal";
 import SessionExpiredNotice from "./SessionExpiredNotice";
+import Pagination from "./Pagination";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
@@ -180,64 +181,6 @@ const ScheduleTable = React.memo(function ScheduleTable({
     </div>
   );
 });
-
-/* ===== Pagination（重複排除） ===== */
-const Pagination = ({ currentPage, totalPages, onChange }) => {
-  if (totalPages <= 1) return null;
-
-  const buildItems = () => {
-    const items = [];
-    const maxButtons = 7;
-    if (totalPages <= maxButtons) {
-      for (let i = 1; i <= totalPages; i++) items.push(i);
-    } else {
-      const left = Math.max(2, currentPage - 1);
-      const right = Math.min(totalPages - 1, currentPage + 1);
-      items.push(1);
-      if (left > 2) items.push("…");
-      for (let i = left; i <= right; i++) items.push(i);
-      if (right < totalPages - 1) items.push("…");
-      items.push(totalPages);
-    }
-    return items;
-  };
-
-  return (
-    <div className="pagination">
-      <button
-        className="page-btn"
-        onClick={() => onChange(Math.max(1, currentPage - 1))}
-        disabled={currentPage === 1}
-      >
-        前へ
-      </button>
-
-      {buildItems().map((it, idx) =>
-        it === "…" ? (
-          <span key={`e-${idx}`} className="page-ellipsis">
-            …
-          </span>
-        ) : (
-          <button
-            key={it}
-            className={`page-btn ${it === currentPage ? "active" : ""}`}
-            onClick={() => onChange(it)}
-          >
-            {it}
-          </button>
-        )
-      )}
-
-      <button
-        className="page-btn"
-        onClick={() => onChange(Math.min(totalPages, currentPage + 1))}
-        disabled={currentPage === totalPages}
-      >
-        次へ
-      </button>
-    </div>
-  );
-};
 
 const PAGE_SIZE = 20;
 const EMPTY_ASSIGNMENTS = [];

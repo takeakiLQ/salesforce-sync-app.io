@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import "./Withdrawn.css";
+import "./SearchPage.css";
 import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
 import SearchHistoryModal from "./SearchHistoryModal";
 import SessionExpiredNotice from "./SessionExpiredNotice";
+import Pagination from "./Pagination";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
@@ -334,6 +335,11 @@ export default function Withdrawn() {
       return Math.min(p, newTotal);
     });
   }, [filtered]);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   // その他
   const [errorMessage, setErrorMessage] = useState("");
@@ -924,52 +930,11 @@ const handleSearch = () => {
 
         {/* ===== TOP ページャ（リスト上） ===== */}
         {hasSearched && !isLoading && filtered.length > 0 && (
-          <div className="pagination">
-            <button
-              className="page-btn"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              前へ
-            </button>
-
-            {(() => {
-              const items = [];
-              const maxButtons = 7;
-              if (totalPages <= maxButtons) {
-                for (let i = 1; i <= totalPages; i++) items.push(i);
-              } else {
-                const left = Math.max(2, currentPage - 1);
-                const right = Math.min(totalPages - 1, currentPage + 1);
-                items.push(1);
-                if (left > 2) items.push("…");
-                for (let i = left; i <= right; i++) items.push(i);
-                if (right < totalPages - 1) items.push("…");
-                items.push(totalPages);
-              }
-              return items.map((it, idx) =>
-                it === "…" ? (
-                  <span key={`e-${idx}`} className="page-ellipsis">…</span>
-                ) : (
-                  <button
-                    key={it}
-                    className={`page-btn ${it === currentPage ? "active" : ""}`}
-                    onClick={() => setCurrentPage(it)}
-                  >
-                    {it}
-                  </button>
-                )
-              );
-            })()}
-
-            <button
-              className="page-btn"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              次へ
-            </button>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onChange={handlePageChange}
+          />
         )}
 
         {/* ===== テーブル ===== */}
@@ -1098,52 +1063,11 @@ const handleSearch = () => {
 
         {/* ===== BOTTOM ページャ（リスト下） ===== */}
         {hasSearched && !isLoading && filtered.length > 0 && (
-          <div className="pagination">
-            <button
-              className="page-btn"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              前へ
-            </button>
-
-            {(() => {
-              const items = [];
-              const maxButtons = 7;
-              if (totalPages <= maxButtons) {
-                for (let i = 1; i <= totalPages; i++) items.push(i);
-              } else {
-                const left = Math.max(2, currentPage - 1);
-                const right = Math.min(totalPages - 1, currentPage + 1);
-                items.push(1);
-                if (left > 2) items.push("…");
-                for (let i = left; i <= right; i++) items.push(i);
-                if (right < totalPages - 1) items.push("…");
-                items.push(totalPages);
-              }
-              return items.map((it, idx) =>
-                it === "…" ? (
-                  <span key={`e2-${idx}`} className="page-ellipsis">…</span>
-                ) : (
-                  <button
-                    key={it}
-                    className={`page-btn ${it === currentPage ? "active" : ""}`}
-                    onClick={() => setCurrentPage(it)}
-                  >
-                    {it}
-                  </button>
-                )
-              );
-            })()}
-
-            <button
-              className="page-btn"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              次へ
-            </button>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onChange={handlePageChange}
+          />
         )}
       </div>
 
