@@ -7,10 +7,11 @@ import React, {
 } from "react";
 import HeaderMenu from "./HeaderMenu";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import SessionExpiredNotice from "./SessionExpiredNotice";
+import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 import "./SubcontractorAnalysisPage.css";
 
-const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
+const RANGE_ASSIGN = "稼働中案件!A1:ZZ";
 
 // グラフ用の表示名マッピング
 const GROUP_LABELS = {
@@ -82,6 +83,7 @@ const SubcontractorAnalysisPage = () => {
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [authExpired, setAuthExpired] = useState(false);
 
   // グラフ選択状態
   const [selectedGroup, setSelectedGroup] = useState(null); // 主管
@@ -180,44 +182,36 @@ const SubcontractorAnalysisPage = () => {
       ? `https://logiquest.lightning.force.com/one/one.app#/sObject/${id}/view`
       : null;
 
-  /** データ取得 */
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("認証トークンがありません。再ログインしてください。");
-          setLoading(false);
-          return;
-        }
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/稼働中案件!A1:ZZ`;
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+  /** データ取得（sheetsApi 側でキャッシュされるため再訪時は即時） */
+  const loadData = useCallback(async ({ force = false } = {}) => {
+    setLoading(true);
+    setError("");
+    setAuthExpired(false);
+    try {
+      const data = await fetchSheetRows(RANGE_ASSIGN, { force });
 
-        const [header, ...rows] = res.data.values || [];
-        const data = rows.map((row) => {
-          const obj = {};
-          header.forEach((col, i) => (obj[col] = row[i] ?? ""));
-          return obj;
-        });
+      // データ上は「業者」でフィルタ（UI表記は「協力会社」に統一）
+      const vendors = data.filter(
+        (r) => r["Partner_Keiyaku_type_temp__c"] === "業者"
+      );
 
-        // データ上は「業者」でフィルタ（UI表記は「協力会社」に統一）
-        const vendors = data.filter(
-          (r) => r["Partner_Keiyaku_type_temp__c"] === "業者"
-        );
-
-        setAllRows(vendors);
-        setSelectedList(vendors);
-        setLoading(false);
-      } catch (e) {
-        console.error(e);
+      setAllRows(vendors);
+      setSelectedList(vendors);
+    } catch (e) {
+      console.error(e);
+      if (isAuthError(e)) {
+        setAuthExpired(true);
+      } else {
         setError("データ取得中にエラーが発生しました。");
-        setLoading(false);
       }
-    };
-    fetchData();
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // filteredListは未使用のため削除
 
@@ -599,6 +593,8 @@ const SubcontractorAnalysisPage = () => {
             <div className="spinner" aria-label="読み込み中" />
             <div className="loading-text">データ取得中です...</div>
           </div>
+        ) : authExpired ? (
+          <SessionExpiredNotice onRetry={() => loadData({ force: true })} />
         ) : error ? (
           <p style={{ color: "#b00020" }}>{error}</p>
         ) : (

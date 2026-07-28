@@ -1,17 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Withdrawn.css";
 import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
 import SearchHistoryModal from "./SearchHistoryModal";
+import SessionExpiredNotice from "./SessionExpiredNotice";
 import { useNavigate } from "react-router-dom";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
+import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 
-// ...既存のロジック...
-
-const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
-const SHEET_EXITED = "離脱パートナー";
+// 2万行まで取得（列オープン）
+const RANGE_EXITED = "離脱パートナー!A1:20000";
 const FILTER_CACHE_KEY = "withdrawnFilters_v1";
 const SEARCH_HISTORY_PAGE_KEY = "withdrawn";
 
@@ -179,55 +178,43 @@ export default function Withdrawn() {
     [areaMap, selectedPrefs]
   );
 
-  // 離脱パートナー取得
-  const fetchExited = async () => {
+  // 離脱パートナー＋都道府県マスタ取得
+  // （sheetsApi 側でキャッシュされるため、ページを行き来しても再ダウンロードされない）
+  const loadData = useCallback(async ({ force = false } = {}) => {
     exitedReadyRef.current = false;
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("NO_TOKEN");
-      // ★ 2万行まで取得（列オープン）
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_EXITED}!A1:20000`;
-      const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+    setNeedReauth(false);
+    setErrorMessage("");
 
-      const values = res.data.values || [];
-      const header = values[0] || [];
-      const rows = values.slice(1);
+    const [exitedResult, areaResult] = await Promise.allSettled([
+      // ヘッダに空白が混じるシートのため正規化キーも併記する（例: "最終 稼働日"→"最終稼働日"）
+      fetchSheetRows(RANGE_EXITED, { force, normalizeKeys: true }),
+      fetchPrefectureCityMap({ force }),
+    ]);
 
-      // ヘッダ正規化：全角→半角、trim、空白除去
-      const normKey = (s) =>
-        String(s || "")
-          .replace(/\u3000/g, " ")
-          .trim()
-          .replace(/\s+/g, "");
-
-      const headerLen = header.length;
-      const data = rows.map((row) => {
-        // 行末をヘッダ長までパディング（Google Sheetsの行末切り詰め対策）
-        const r = row.slice();
-        if (r.length < headerLen) r.push(...Array(headerLen - r.length).fill(""));
-        const obj = {};
-        for (let i = 0; i < headerLen; i++) {
-          const rawKey = header[i] ?? "";
-          const val = r[i] ?? "";
-          obj[rawKey] = val;             // 元キー
-          obj[normKey(rawKey)] = val;    // 正規化キー（例: "最終 稼働日"→"最終稼働日"）
-        }
-        return obj;
-      });
-      setExitedPartners(data);
-    } catch (e) {
-      console.error("fetchExited error:", e);
-      setExitedPartners([]);
-      setErrorMessage("離脱パートナー情報の取得に失敗しました。再認証してください。");
-      setNeedReauth(true);
-    } finally {
-      exitedReadyRef.current = true;
+    setExitedPartners(exitedResult.status === "fulfilled" ? exitedResult.value : []);
+    if (areaResult.status === "fulfilled") {
+      setAreaMap(areaResult.value);
     }
-  };
 
-  useEffect(() => {
-    fetchExited();
+    exitedReadyRef.current = true;
+
+    const failures = [exitedResult, areaResult]
+      .filter((r) => r.status === "rejected")
+      .map((r) => r.reason);
+    if (failures.some(isAuthError)) {
+      setNeedReauth(true);
+    } else if (failures.length) {
+      console.error("離脱パートナー情報の取得に失敗:", failures);
+      setErrorMessage("データの取得に失敗しました。時間をおいて再試行してください。");
+    }
   }, []);
+
+
+  // 全件取得のため、マウント時の1回だけに限定する
+  // （検索条件の変更で再取得してはいけない：数千〜2万行のダウンロードが走る）
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
   const navigate = useNavigate();
 
   // お気に入り
@@ -368,24 +355,6 @@ export default function Withdrawn() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  /* ====== 都道府県マスタ ====== */
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    fetchPrefectureCityMap({ token })
-      .then(setAreaMap)
-      .catch((err) => {
-        console.error("fetchAreaMap error:", err);
-        setErrorMessage("エリア情報の取得に失敗しました。再認証してください。");
-        setNeedReauth(true);
-      });
-  }, []);
-
-  /* ====== 離脱パートナー取得（初期表示は空） ====== */
-  useEffect(() => {
-    fetchExited();
-  }, [areaMap, selectedPrefs, allPrefList]);
 
   // 都道府県の変更で候補外の市区町村を自動除外
   useEffect(() => {
@@ -815,6 +784,8 @@ const handleLogout = () => {
           </button>
         )}
 
+        {needReauth && <SessionExpiredNotice onRetry={() => loadData({ force: true })} />}
+
         {/* ===== 検索パネル ===== */}
         <div className="search-panel">
           {/* 住所：おしゃれチップ → モーダル（複数選択） */}
@@ -910,11 +881,6 @@ const handleLogout = () => {
           {/* 並び替え＆実行 */}
           <div className="search-button-wrapper">
             {errorMessage && <div className="error-message">{errorMessage}</div>}
-            {needReauth && (
-              <button className="menu-button" onClick={() => { localStorage.removeItem("token"); navigate("/"); }}>
-                Google再認証
-              </button>
-            )}
 
             <div className="sort-controls" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
@@ -1034,7 +1000,7 @@ const handleLogout = () => {
 
         {/* ===== テーブル ===== */}
         <div style={{ marginTop: 16 }}>
-          {!hasSearched ? null : filtered.length === 0 && !isLoading ? (
+          {!hasSearched || needReauth ? null : filtered.length === 0 && !isLoading ? (
             <div style={{ textAlign: "center", marginTop: 20 }}>該当するパートナーはいません</div>
           ) : !isLoading ? (
             <div style={{ overflowX: "auto" }}>

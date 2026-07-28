@@ -61,6 +61,21 @@ h2 {
 }
 
 /* ================================= */
+/* エラーメッセージ                 */
+/* ================================= */
+.login-error {
+  margin-top: 20px;
+  max-width: 420px;
+  padding: 10px 16px;
+  border: 1px solid #f0b4b4;
+  border-radius: 6px;
+  background-color: #fdf2f2;
+  color: #990000;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* ================================= */
 /* ローディング表示                 */
 /* ================================= */
 .loading-text {

@@ -2,27 +2,32 @@
 
 import React, { useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Loading from './Loading';
+import { clearSheetCache } from '../utils/sheetsApi';
 import './Login.css';
 
 const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const login = useGoogleLogin({
     ux_mode: 'popup',
     scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/gmail.send',
     onSuccess: async (response) => {
+      setErrorMessage('');
       setLoading(true);
       try {
         const accessToken = response.access_token;
         if (!accessToken) {
-          alert("アクセストークンが取得できませんでした");
-          return;
+          throw new Error('アクセストークンが取得できませんでした');
         }
 
         localStorage.setItem("token", accessToken);
+        // 前セッションのシートキャッシュは破棄し、必ず取り直す
+        clearSheetCache();
 
         const userInfo = await axios.get('https://people.googleapis.com/v1/people/me', {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -35,7 +40,8 @@ const Login = () => {
         localStorage.setItem("userName", name);
         localStorage.setItem("userEmail", email);
 
-        await axios.post(
+        // ログイン履歴の記録は補助処理。失敗してもログインは通す（待たない）
+        axios.post(
           `https://sheets.googleapis.com/v4/spreadsheets/${process.env.REACT_APP_SPREADSHEET_ID}/values/ログイン履歴!A1:append`,
           {
             values: [[new Date().toLocaleString(), name, email]]
@@ -49,24 +55,28 @@ const Login = () => {
               valueInputOption: 'USER_ENTERED'
             }
           }
-        );
+        ).catch((error) => {
+          console.warn("ログイン履歴の記録に失敗しました", error.response || error.message);
+        });
 
-  navigate('/home');
+        navigate('/home');
       } catch (error) {
         console.error("ログインエラー:", error.response || error.message);
-        alert("ログイン処理に失敗しました。もう一度お試しください。");
+        localStorage.removeItem("token");
+        setErrorMessage('ログイン処理に失敗しました。もう一度お試しください。');
         setLoading(false);
       }
     },
     onError: () => {
-      alert("Googleログインに失敗しました。");
+      setErrorMessage('Googleログインに失敗しました。もう一度お試しください。');
       setLoading(false);
     }
   });
 
-  // ✅ ローディング中なら /loading に遷移
+  // ローディングはこのコンポーネント内で描画する。
+  // （/loading へ遷移させるとLoginがアンマウントされ、失敗時に復帰できなくなる）
   if (loading) {
-    return <Navigate to="/loading" />;
+    return <Loading />;
   }
 
   return (
@@ -75,12 +85,14 @@ const Login = () => {
       
       <img src={`${process.env.PUBLIC_URL}/logo.png`} alt="App Logo" className="login-logo" />
    
-    <p>v2.1.1</p>
+    <p>ver.2</p>
       <button className="google-login-button" onClick={login}>
         Googleでログイン
       </button>
-      
-           
+
+      {errorMessage && (
+        <p className="login-error" role="alert">{errorMessage}</p>
+      )}
     </div>
   );
 };

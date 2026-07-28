@@ -1,19 +1,19 @@
 // AvailabilityPage.js
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./AvailabilityPage.css";
 import { useNavigate } from "react-router-dom";
 import ReactSlider from "react-slider";
 import HeaderMenu from "./HeaderMenu";
 import LocationSelectorModal from "./LocationSelectorModal";
 import SearchHistoryModal from "./SearchHistoryModal";
+import SessionExpiredNotice from "./SessionExpiredNotice";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
+import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 
-const SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
-// const SHEET_PARTNER = "パートナー情報"; // 未使用のためコメントアウト
-const SHEET_ASSIGN = "稼働中案件";
+const RANGE_PARTNER = "パートナー情報!A1:ZZ";
+const RANGE_ASSIGN = "稼働中案件!A1:ZZ";
 const FILTER_CACHE_KEY = "availabilityFilters_v1";
 const SEARCH_HISTORY_PAGE_KEY = "availability";
 
@@ -227,41 +227,9 @@ const AvailabilityPage = () => {
   const [strictMatch, setStrictMatch] = useState(() => pickBoolean("strictMatch", false));
 
   const [partners, setPartners] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const partnersReadyRef = useRef(false);
   const pendingSearchRef = useRef(null);
-  // パートナーデータ取得
-  useEffect(() => {
-    const fetchPartners = async () => {
-      partnersReadyRef.current = false;
-      const token = localStorage.getItem("token");
-      if (!token) {
-        partnersReadyRef.current = true;
-        setPartners([]);
-        return;
-      }
-      try {
-        // パートナー情報シート名は "パートナー情報" で仮定
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/パートナー情報!A1:ZZ`;
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const [header, ...rows] = res.data.values || [[]];
-        const data = rows.map((row) => {
-          const obj = {};
-          header.forEach((col, i) => (obj[col] = row[i] ?? ""));
-          return obj;
-        });
-        setPartners(data);
-      } catch (e) {
-        // データ取得失敗時は空配列
-        setPartners([]);
-      } finally {
-        partnersReadyRef.current = true;
-      }
-    };
-    fetchPartners();
-  }, []);
-  const [assignments, setAssignments] = useState([]);
 
   const [filteredPartners, setFilteredPartners] = useState([]);
   const [rawFilteredPartners, setRawFilteredPartners] = useState([]);
@@ -364,6 +332,7 @@ const AvailabilityPage = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [authExpired, setAuthExpired] = useState(false);
 
   const navigate = useNavigate();
   const userEmail = localStorage.getItem("userEmail") || "未取得";
@@ -384,16 +353,48 @@ const AvailabilityPage = () => {
     navigate("/home");
   };
 
-  /* ===== 都道府県マスタ ===== */
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    fetchPrefectureCityMap({ token })
-      .then(setAreaMap)
-      .catch((error) => {
-        console.error("都道府県マスタの取得に失敗:", error);
-      });
+  /* ===== データ取得（sheetsApi 側でキャッシュされるため再訪時は即時） ===== */
+  const loadData = useCallback(async ({ force = false } = {}) => {
+    partnersReadyRef.current = false;
+    setAuthExpired(false);
+    setErrorMessage("");
+
+    const results = await Promise.allSettled([
+      fetchSheetRows(RANGE_PARTNER, { force }),
+      fetchSheetRows(RANGE_ASSIGN, { force }),
+      fetchPrefectureCityMap({ force }),
+    ]);
+    const [partnerResult, assignResult, areaResult] = results;
+
+    if (partnerResult.status === "fulfilled") {
+      setPartners(partnerResult.value);
+    } else {
+      setPartners([]);
+    }
+    if (assignResult.status === "fulfilled") {
+      setAssignments(assignResult.value);
+    }
+    if (areaResult.status === "fulfilled") {
+      setAreaMap(areaResult.value);
+    }
+
+    partnersReadyRef.current = true;
+
+    const failures = results
+      .filter((r) => r.status === "rejected")
+      .map((r) => r.reason);
+    if (failures.some(isAuthError)) {
+      // 「該当なし」に見せないよう、認証切れは明示する
+      setAuthExpired(true);
+    } else if (failures.length) {
+      console.error("データ取得に失敗:", failures);
+      setErrorMessage("データの取得に失敗しました。時間をおいて再試行してください。");
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // 候補生成（県＝全キー／市区町村＝選択県の合算。未選択時は全県合算）
   const allPrefList = useMemo(() => Object.keys(areaMap), [areaMap]);
@@ -411,29 +412,6 @@ const AvailabilityPage = () => {
   }, [areaMap, selectedPrefs]);
 
   /* ===== 並び替え ===== */
-  // useCallback版は削除。下の通常定義のみ残す。
-
-  useEffect(() => {
-    const fetchAssignments = async () => {
-      const token = localStorage.getItem("token");
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_ASSIGN}!A1:ZZ`;
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const [header, ...rows] = res.data.values || [[]];
-      const data = rows.map((row) => {
-        const obj = {};
-        header.forEach((col, i) => {
-          obj[col] = row[i] || "";
-        });
-        return obj;
-      });
-      setAssignments(data);
-    };
-    fetchAssignments();
-  }, []);
-
-
   // 並び替え関数はuseCallbackでラップ
   const sortPartners = React.useCallback((partnersToSort, key, order) => {
     const dir = order === "asc" ? 1 : -1;
@@ -612,23 +590,16 @@ const AvailabilityPage = () => {
     }, 0);
   };
 
-/*   useEffect(() => {
-    if (restoredSearchRef.current) return;
-    if (!savedFilters || !savedFilters.hasSearched) return;
-    restoredSearchRef.current = true;
-    const favoritesMode = !!savedFilters.showFavoritesOnly;
-    handleSearch(favoritesMode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); */
-
-/*   useEffect(() => {
+  // データ到着前に検索が押された場合、到着後に自動で実行する
+  // （これが無いと「検索中...」のまま止まってしまう）
+  useEffect(() => {
     if (!partnersReadyRef.current) return;
     if (!pendingSearchRef.current) return;
     const { favoritesOnly } = pendingSearchRef.current;
     pendingSearchRef.current = null;
     handleSearch(favoritesOnly);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [partners]); */
+  }, [partners]);
 
   /* ===== モーダル制御 ===== */
   const openLocationModal = (type) => {
@@ -779,7 +750,7 @@ const AvailabilityPage = () => {
           </button>
         )}
 
-        {/* メニューはHeaderMenuに統一。重複表示防止のため削除 */}
+        {authExpired && <SessionExpiredNotice onRetry={() => loadData({ force: true })} />}
 
         <div className="search-panel">
           {/* 住所：チップ → モーダル複数選択 */}
@@ -1111,6 +1082,7 @@ const AvailabilityPage = () => {
         {/* 検索結果・カード＆ページネーション（検索後＆結果ありのときだけ） */}
         {hasSearched &&
           !isLoading &&
+          !authExpired &&
           (filteredPartners.length === 0 ? (
             <div style={{ textAlign: "center", marginTop: 20 }}>
               該当するパートナーはいません

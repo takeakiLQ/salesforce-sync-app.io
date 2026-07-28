@@ -1,23 +1,19 @@
+import { fetchSheetValues } from "./sheetsApi";
 
-import axios from "axios";
+const PREFECTURE_MASTER_RANGE = "都道府県マスタ!B2:C";
 
-const DEFAULT_SPREADSHEET_ID = process.env.REACT_APP_SPREADSHEET_ID;
+let areaMapCache = null;
 
-export async function fetchPrefectureCityMap({
-  token,
-  spreadsheetId = DEFAULT_SPREADSHEET_ID,
-} = {}) {
-  if (!token) {
-    throw new Error("TOKEN_REQUIRED");
-  }
+/**
+ * 都道府県マスタから { 都道府県: [市区町村, ...] } を作る。
+ * シート取得は sheetsApi 側でキャッシュされるため、ページ移動では再取得しない。
+ */
+export async function fetchPrefectureCityMap({ force = false } = {}) {
+  if (areaMapCache && !force) return areaMapCache;
 
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/都道府県マスタ!B2:C`;
-  const response = await axios.get(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const values = await fetchSheetValues(PREFECTURE_MASTER_RANGE, { force });
 
   const areaMap = {};
-  const values = response.data?.values || [];
   values.forEach(([prefecture, city]) => {
     if (!prefecture) return;
     if (!areaMap[prefecture]) {
@@ -28,6 +24,7 @@ export async function fetchPrefectureCityMap({
     }
   });
 
+  areaMapCache = areaMap;
   return areaMap;
 }
 

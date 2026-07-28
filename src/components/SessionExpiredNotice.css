@@ -1,0 +1,70 @@
+.session-expired {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 900px;
+  margin: 16px auto;
+  padding: 14px 18px;
+  border: 1px solid #f0b4b4;
+  border-left: 6px solid #c62828;
+  border-radius: 8px;
+  background-color: #fdf2f2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.session-expired__body {
+  flex: 1 1 320px;
+  min-width: 240px;
+}
+
+.session-expired__title {
+  margin-bottom: 4px;
+  color: #990000;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.session-expired__text {
+  color: #5c2b2b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.session-expired__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.session-expired__button,
+.session-expired__retry {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.session-expired__button {
+  border: none;
+  background-color: #4285f4;
+  color: #fff;
+}
+
+.session-expired__button:hover {
+  background-color: #03327c;
+  transform: translateY(-2px);
+}
+
+.session-expired__retry {
+  border: 1px solid #c8ccd4;
+  background-color: #fff;
+  color: #333;
+}
+
+.session-expired__retry:hover {
+  background-color: #f1f3f6;
+}
