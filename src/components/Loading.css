@@ -1,14 +1,25 @@
 /* src/components/Loading.css */
 
 .loading-container {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  /* 固定の height だと中身があふれたとき上側が見えなくなるため min-height にする */
+  min-height: 100vh;
+  padding: 24px 16px;
   font-family: Arial, sans-serif;
+  text-align: center;
   /* 元の背景色を削除し、グラデーションに変更 */
   background: linear-gradient(to bottom right, #ffffff, #ecf1cc);
+}
+
+/* 以前は Login.css のグローバルな h2 指定に依存していたため、明示的に指定する */
+.loading-container h2 {
+  margin-bottom: 8px;
+  color: #03327c;
+  font-size: 22px;
 }
 
 .loading-spinner {
