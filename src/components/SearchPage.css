@@ -61,12 +61,9 @@ body {
 .order-toggle.asc { background-color: #8fbcff; }
 .order-toggle.desc { background-color: #ffafaf; }
 
-@media (max-width: 480px) {
-  .sort-controls {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
+/* .sort-controls は result-toolbar 内でのみ使用。
+   以前ここにあった「480px以下で縦積み」の指定は、セレクトと昇降ボタンが
+   縦に並んで無駄に高くなるため削除した（下のツールバー側で横並びを指定）。 */
 
 .result-count {
   background-color: #e6f0ff;
@@ -80,6 +77,106 @@ body {
   max-width: 260px;
   margin: 16px auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ===============================
+   畳んだ検索パネル（条件サマリ）
+   =============================== */
+.search-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background-color: #c0dafc;
+  border: 1px solid #cccccc;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.search-summary__text {
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #123a63;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.search-summary__toggle {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  border: 1px solid #0366d6;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #0366d6;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.search-summary__toggle:hover { background-color: #e6f0ff; }
+
+/* ===============================
+   結果ツールバー（件数・並び替え・表の向き）
+   =============================== */
+.result-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  background-color: #f4f7fb;
+  border: 1px solid #d8e2ef;
+  border-radius: 8px;
+}
+
+.result-toolbar__count {
+  font-size: 15px;
+  font-weight: bold;
+  color: #003366;
+}
+.result-toolbar__count strong { font-size: 19px; }
+
+.result-toolbar__range {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: normal;
+  color: #4b5563;
+}
+
+.result-toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.result-toolbar .sort-controls {
+  display: flex;
+  flex-direction: row; /* 縦積みにしない */
+  align-items: center;
+  gap: 8px;
+}
+
+.result-toolbar .table-orientation-controls { margin-top: 0; }
+
+/* 「（推奨）」は画面幅で出し分ける（PC=横方向／スマホ=縦方向） */
+.seg-recommend {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: normal;
+  opacity: 0.8;
+}
+.seg-recommend--narrow { display: none; }
+
+@media (max-width: 768px) {
+  .seg-recommend--wide { display: none; }
+  .seg-recommend--narrow { display: inline; }
 }
 
 .search-panel {
@@ -165,6 +262,8 @@ button.search { background-color: #0366d6; color: white; }
 button.link { background-color: #28a745; color: white; }
 
 .keyword-input {
+  /* 幅を伸ばして使う入力なので、padding+border を含めた幅で計算させる */
+  box-sizing: border-box;
   border-radius: 8px;
   border: 1px solid #ccc;
   padding: 6px 8px;
@@ -200,6 +299,28 @@ button.link { background-color: #28a745; color: white; }
   background: #abd9ff; /* 淡い黄色 */
   box-shadow: 0 0 12px rgba(8, 104, 164, 0.5);
 }
+
+/* 氏名・住所・携帯番号は、そのカードを見ている間ずっと画面に残す。
+   カード直下に置くことで、sticky が効く範囲＝カード全体になる。 */
+.partner-card__sticky {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  /* カードの padding を打ち消して端まで背景を伸ばす */
+  margin: -20px -20px 14px;
+  padding: 14px 20px 10px;
+  background: #f7f2b2;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px 6px 0 0;
+}
+
+.partner-card.favorite-card .partner-card__sticky {
+  background: #abd9ff;
+}
+
+.partner-card__sticky h3 { margin: 0 0 6px; }
+.partner-card__sticky p { margin: 2px 0; }
+.partner-card__sticky .name-block { margin-bottom: 0; }
 
 .name-block {
   margin-bottom: 12px;
@@ -693,18 +814,80 @@ button.link { background-color: #28a745; color: white; }
     padding: 8px 12px;
   }
 
+  .search-summary {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .search-summary__text { font-size: 13px; flex: 1 1 100%; }
+  .search-summary__toggle { flex: 1 1 100%; padding: 11px 14px; }
+
+  /* 縦に伸びないよう、3行にきっちり収める：
+       1行目 件数（範囲も同じ行）
+       2行目 並び替え（セレクト＋昇降を横並び）
+       3行目 表の向き（2ボタンで幅を分け合う）
+     すべて左揃えにして視線が横に飛ばないようにする。 */
+  .result-toolbar {
+    padding: 9px 12px;
+    gap: 7px;
+  }
+
+  .result-toolbar__count {
+    flex: 1 1 100%;
+    font-size: 13px;
+  }
+  .result-toolbar__count strong { font-size: 17px; }
+  .result-toolbar__range {
+    margin-left: 4px;
+    font-size: 11px;
+  }
+
+  .result-toolbar__controls {
+    flex: 1 1 100%;
+    gap: 7px;
+  }
+
+  .result-toolbar .sort-controls {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+  .result-toolbar .sort-controls select {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 9px 8px;
+    font-size: 14px;
+  }
+  .result-toolbar .sort-controls .order-toggle {
+    flex: 0 0 auto;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .result-toolbar .table-orientation-controls {
+    flex: 1 1 100%;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .result-toolbar .table-orientation-controls .label {
+    flex: 0 0 auto;
+    font-size: 13px;
+  }
+  .result-toolbar .table-orientation-controls .seg {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 9px 4px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .seg-recommend { margin-left: 2px; font-size: 10px; }
+
   .partner-card { padding: 12px; }
+  .partner-card__sticky {
+    margin: -12px -12px 10px;
+    padding: 10px 12px 8px;
+  }
 
   .result-table th,
   .result-table td { padding: 7px 8px; font-size: 12px; }
-
-  /* 画面が狭いので固定ボタンは小さめ・端に寄せる */
-  .scroll-to-top {
-    bottom: 14px;
-    right: 14px;
-    padding: 10px 14px;
-    font-size: 13px;
-  }
 
   /* ホバーで浮かせない（タップ後に残るため） */
   .function-card:hover { transform: none; }
@@ -827,23 +1010,145 @@ button.link { background-color: #28a745; color: white; }
   background-color: #e6f0ff;
 }
 
-.scroll-to-top {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  padding: 12px 16px;
-  font-size: 14px;
-  font-weight: bold;
-  background-color: #0366d6;
-  color: white;
-  border: none;
-  border-radius: 30px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-  cursor: pointer;
-  z-index: 999;
-  transition: opacity 0.3s ease;
+/* 「TOPへ戻る」ボタンは ScrollTopButton.css に移設 */
+
+/* ===============================
+   離脱パートナー：スマホ用カード
+   11列の表は狭い画面では横スクロールしても読めないため、
+   768px以下ではこのカードに描き分ける（Withdrawn.js 側で切替）
+   =============================== */
+.wd-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-.scroll-to-top:hover { background-color: #024db0; }
+
+/* ページ背景が白～クリームで白いカードだと境目が分かりにくいので、
+   余白と影を強め、さらに左端の色帯で1件ずつの区切りを明示する。
+   帯の色はリサイクル可否を表し、区切りと情報を兼ねている。 */
+.wd-card {
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid #c3d3e6;
+  border-left: 5px solid #9fb6ce;
+  border-radius: 10px;
+  box-shadow: 0 2px 7px rgba(16, 42, 74, 0.14);
+}
+
+.wd-card--ok { border-left-color: #34a853; }
+.wd-card--ng { border-left-color: #d93025; }
+
+.wd-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.wd-card__name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.wd-card__name .name-link {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+.wd-card__meta {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: normal;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* リサイクル可否は再獲得の判断に直結するのでバッジで目立たせる */
+.wd-badge {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.wd-badge--ok { background: #e3f6e8; color: #14682c; border: 1px solid #a8dcb6; }
+.wd-badge--ng { background: #fdeaea; color: #96201f; border: 1px solid #f0b4b4; }
+
+.wd-card__row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wd-card__label {
+  flex: 0 0 52px;
+  color: #6b7280;
+  font-size: 11px;
+  padding-top: 2px;
+}
+
+.wd-card__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #333;
+  overflow-wrap: anywhere;
+}
+
+.wd-card__phone {
+  font-size: 16px;
+  font-weight: bold;
+  color: #0055aa;
+}
+
+.wd-card__missing { color: #990000; font-weight: bold; }
+
+/* 日付は3つ横並び */
+.wd-card__dates {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eef2f7;
+  font-size: 13px;
+}
+.wd-card__dates > div {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.wd-card__dates .wd-card__label { flex: none; padding-top: 0; }
+
+.wd-card__reason {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eef2f7;
+}
+
+.wd-card__reason-line {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #333;
+  overflow-wrap: anywhere;
+}
+
+.wd-card__detail {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: #f7f9fc;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #444;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 .info-tooltip { position: relative; display: inline-block; cursor: default; }
 

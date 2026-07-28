@@ -60,6 +60,24 @@
   white-space: nowrap;
 }
 
+/* スマホ用：頭文字だけの丸。既定では隠しておく。
+   常時見えるものなので主張を抑えた淡い色にし、文字は濃色で可読性を確保する。 */
+.user-avatar {
+  display: none;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #dceffa;
+  border: 1px solid #b6ddf2;
+  color: #1c6f99;
+  font-size: 15px;
+  font-weight: bold;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
 .menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -103,6 +121,30 @@
 .menu-button.disabled:hover,
 .menu-button:disabled:hover { background-color: #f5f5f5; }
 
+/* ログイン中のアカウント（メニュー最下部） */
+.menu-account {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.menu-account__label {
+  font-size: 11px;
+  color: #888;
+}
+
+.menu-account__value {
+  font-size: 12px;
+  color: #444;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
 /* キーボード操作時のフォーカス表示 */
 .hamburger:focus-visible,
 .menu-button:focus-visible {
@@ -138,7 +180,11 @@
 
   .left-section { gap: 0.35rem; }
   .app-title { font-size: 15px; line-height: 1.25; }
-  .user-info { font-size: 12px; padding: 3px 8px; max-width: 34%; }
+
+  /* 氏名を出すと画面幅を大きく取られるため、頭文字の丸に置き換える。
+     フルのアカウント名はメニュー最下部で確認できる。 */
+  .user-info { display: none; }
+  .user-avatar { display: flex; }
 
   /* 指で押せる大きさを確保する */
   .hamburger {

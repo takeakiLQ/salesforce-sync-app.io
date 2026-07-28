@@ -8,6 +8,8 @@ import LocationSelectorModal from "./LocationSelectorModal";
 import SearchHistoryModal from "./SearchHistoryModal";
 import SessionExpiredNotice from "./SessionExpiredNotice";
 import Pagination from "./Pagination";
+import ScrollTopButton from "./ScrollTopButton";
+import ConfirmLink from "./ConfirmLink";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
@@ -328,6 +330,42 @@ const AvailabilityPage = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  // 検索パネルの開閉（検索して結果が出たら畳む）
+  const [panelOpen, setPanelOpen] = useState(true);
+
+  // 畳んだときに表示する条件サマリ
+  const searchSummary = useMemo(() => {
+    const parts = [];
+    if (showFavoritesOnly) parts.push("⭐ お気に入りのみ");
+    if (selectedPrefs.length) parts.push(selectedPrefs.join("・"));
+    if (selectedDistricts.length) {
+      parts.push(
+        selectedDistricts.length > 3
+          ? `${selectedDistricts.slice(0, 3).join("・")} 他${selectedDistricts.length - 3}件`
+          : selectedDistricts.join("・")
+      );
+    }
+    if (weekSelections.length) {
+      parts.push(`${weekSelections.join("")}${strictMatch ? "（全曜日空車）" : ""}`);
+    }
+    parts.push(`${timeFrom}:00〜${timeTo}:00`);
+    if (ageMin !== "" || ageMax !== "") {
+      parts.push(`${ageMin || "下限なし"}〜${ageMax || "上限なし"}歳`);
+    }
+    if (statusFilter.length && statusFilter.length < 2) parts.push(statusFilter.join("・"));
+    return parts.length ? parts.join(" ｜ ") : "条件指定なし";
+  }, [
+    showFavoritesOnly,
+    selectedPrefs,
+    selectedDistricts,
+    weekSelections,
+    strictMatch,
+    timeFrom,
+    timeTo,
+    ageMin,
+    ageMax,
+    statusFilter,
+  ]);
 
 
   useEffect(() => {
@@ -370,14 +408,6 @@ const AvailabilityPage = () => {
   ]);
 
 
-
-  // スクロールトップ
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 300);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const [errorMessage, setErrorMessage] = useState("");
   const [authExpired, setAuthExpired] = useState(false);
@@ -601,6 +631,8 @@ const AvailabilityPage = () => {
       setFilteredPartners(sortPartners(result, sortKey, sortOrder));
       setCurrentPage(1);
       setIsLoading(false);
+      // 結果があるときだけ畳む。0件なら条件を直したいはずなので開いたままにする
+      setPanelOpen(result.length === 0);
 
       if (effectiveUserId) {
         const elapsed = Math.round(performance.now() - startedAt);
@@ -738,17 +770,25 @@ const AvailabilityPage = () => {
       <HeaderMenu title="空車情報検索（個人事業主）" />
 
       <div className="availability-page">
-        {showScrollTop && (
-          <button
-            className="scroll-to-top"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          >
-            検索パネルに戻る
-          </button>
-        )}
+        <ScrollTopButton />
 
         {authExpired && <SessionExpiredNotice onRetry={() => loadData({ force: true })} />}
 
+        {/* 検索後はパネルを畳み、条件サマリだけ見せて結果を前に出す */}
+        {!panelOpen && (
+          <div className="search-summary">
+            <div className="search-summary__text">{searchSummary}</div>
+            <button
+              type="button"
+              className="search-summary__toggle"
+              onClick={() => setPanelOpen(true)}
+            >
+              条件を変更
+            </button>
+          </div>
+        )}
+
+        {panelOpen && (
         <div className="search-panel">
           {/* 住所：チップ → モーダル複数選択 */}
           <div style={{ marginTop: 4 }}>
@@ -974,69 +1014,6 @@ const AvailabilityPage = () => {
               <div className="error-message">{errorMessage}</div>
             )}
 
-            <div className="table-orientation-controls">
-              <span className="label">表の向き：</span>
-              <button
-                type="button"
-                className={`seg ${
-                  tableOrientation === "horizontal" ? "active" : ""
-                }`}
-                onClick={() => setTableOrientation("horizontal")}
-              >
-                横方向
-              </button>
-              <button
-                type="button"
-                className={`seg ${
-                  tableOrientation === "vertical" ? "active" : ""
-                }`}
-                onClick={() => setTableOrientation("vertical")}
-              >
-                縦方向
-              </button>
-            </div>
-
-            <div
-              className="sort-controls"
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <select
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value)}
-              >
-                <option value="Name">名前</option>
-                <option value="ApprovalDate__c">承認日</option>
-                <option value="Now_Age__c">年齢</option>
-                <option value="Address__c">住所</option>
-                <option value="Gender__c">性別</option>
-                <option value="最終稼働日">最終稼働日</option>
-                <option value="favorite">お気に入り</option>
-              </select>
-
-              <button
-                className={`order-toggle ${sortOrder}`}
-                onClick={() =>
-                  setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
-                }
-              >
-                {sortOrder === "asc" ? "▲ 昇順" : "▼ 降順"}
-              </button>
-            </div>
-
-            {hasSearched && !isLoading && (
-              <div className="result-count">
-                検索結果：{filteredPartners.length} 件<br />（{startIndex}–
-                {endIndex} 件を表示）
-                <br />
-                ページ： {currentPage} / {totalPages}
-              </div>
-            )}
-
             <div className="search-button-wrapper">
               {/* 検索 */}
               <button className="search" onClick={() => handleSearch(false)}>
@@ -1061,7 +1038,75 @@ const AvailabilityPage = () => {
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        )}
+
+        {/* 表示設定と件数は検索条件ではないので、結果リストの直上に置く */}
+        {hasSearched && !isLoading && !authExpired && (
+          <div className="result-toolbar">
+            <div className="result-toolbar__count">
+              <strong>{filteredPartners.length}</strong> 件
+              {filteredPartners.length > 0 && (
+                <span className="result-toolbar__range">
+                  （{startIndex}–{endIndex} 件を表示／{currentPage} / {totalPages}ページ）
+                </span>
+              )}
+            </div>
+
+            <div className="result-toolbar__controls">
+              <div className="sort-controls">
+                <select
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value)}
+                  aria-label="並び替え"
+                >
+                  <option value="Name">名前</option>
+                  <option value="ApprovalDate__c">承認日</option>
+                  <option value="Now_Age__c">年齢</option>
+                  <option value="Address__c">住所</option>
+                  <option value="Gender__c">性別</option>
+                  <option value="最終稼働日">最終稼働日</option>
+                  <option value="favorite">お気に入り</option>
+                </select>
+
+                <button
+                  type="button"
+                  className={`order-toggle ${sortOrder}`}
+                  onClick={() =>
+                    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
+                  }
+                >
+                  {sortOrder === "asc" ? "▲ 昇順" : "▼ 降順"}
+                </button>
+              </div>
+
+              <div className="table-orientation-controls">
+                <span className="label">表の向き：</span>
+                <button
+                  type="button"
+                  className={`seg ${
+                    tableOrientation === "horizontal" ? "active" : ""
+                  }`}
+                  onClick={() => setTableOrientation("horizontal")}
+                >
+                  横方向
+                  {/* 推奨は画面幅で変わるためCSSで出し分ける */}
+                  <span className="seg-recommend seg-recommend--wide">（推奨）</span>
+                </button>
+                <button
+                  type="button"
+                  className={`seg ${
+                    tableOrientation === "vertical" ? "active" : ""
+                  }`}
+                  onClick={() => setTableOrientation("vertical")}
+                >
+                  縦方向
+                  <span className="seg-recommend seg-recommend--narrow">（推奨）</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 検索前の案内／検索中のローディング */}
         {!hasSearched && !isLoading && (
@@ -1117,8 +1162,9 @@ const AvailabilityPage = () => {
                       key={partnerId}
                       className={`partner-card ${isFav ? "favorite-card" : ""}`}
                     >
-                      <div className="partner-info-grid">
-                        <div>
+                      {/* 名前・住所・携帯は、そのカードを見ている間ずっと
+                          画面に残るよう position:sticky で固定する */}
+                      <div className="partner-card__sticky">
                           <h3
                             style={{
                               display: "flex",
@@ -1138,17 +1184,16 @@ const AvailabilityPage = () => {
                             </button>
                             <div className="name-block">
                               <div className="kana-name">{p["Name__c"]}</div>
-                              <a
+                              <ConfirmLink
                                 href={`https://logiquest.lightning.force.com/lightning/r/Contact/${partnerId}/view`}
-                                target="_blank"
-                                rel="noreferrer"
+                                description={`${p["Name"]} さんのパートナー情報`}
                                 className="name-link"
                               >
                                 <strong>
                                   {p["Name"]}（{p["Now_Age__c"]}歳）【
                                   {p["Gender__c"]}性】
                                 </strong>
-                              </a>
+                              </ConfirmLink>
                             </div>
 
                             {(p["taiou_joukyou__c"] ||
@@ -1195,15 +1240,18 @@ const AvailabilityPage = () => {
                               <strong style={{ color: "#990000" }}>なし</strong>
                             )}
                           </p>
+                      </div>
 
+                      <div className="partner-info-grid">
+                        <div>
+                          {/* スティッキーヘッダー側に区切り線を入れたので、
+                              ここの hr は不要 */}
                           <LastWorkField
                             status={p["OperatingStatus__c"]}
                             lastWorked={p["最終稼働日"]}
                             lastProject={p["最終案件名"]}
                             formatDate={formatDate}
                           />
-
-                          <hr style={{ border: "1px solid #ccc" }} />
 
                           <p>
                             管理担当(支店)：
@@ -1232,10 +1280,9 @@ const AvailabilityPage = () => {
 
                           <p>
                             過去案件履歴：
-                            <a
+                            <ConfirmLink
                               href={`https://logiquest.lightning.force.com/lightning/r/Contact/${partnerId}/related/Partner__r/view`}
-                              target="_blank"
-                              rel="noreferrer"
+                              description={`${p["Name"]} さんの過去案件履歴`}
                             >
                               <span
                                 style={{
@@ -1250,7 +1297,7 @@ const AvailabilityPage = () => {
                               >
                                 {p["Anken_Count_Rireki__c"] + "件" || "不明"}
                               </span>
-                            </a>
+                            </ConfirmLink>
                           </p>
 
                           <p>
@@ -1314,15 +1361,15 @@ const AvailabilityPage = () => {
                                 登録なし
                               </span>
                             ) : (
-                              <a
+                              <ConfirmLink
                                 href={`https://www.invoice-kohyo.nta.go.jp/regno-search/detail?selRegNo=${p[
                                   "Invoice_code__c"
                                 ].substring(1)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                serviceName="国税庁インボイス公表サイト"
+                                description={`登録番号 ${p["Invoice_code__c"]} の公表情報`}
                               >
                                 {p["Invoice_code__c"]}
-                              </a>
+                              </ConfirmLink>
                             )}
                           </p>
 
@@ -1344,13 +1391,12 @@ const AvailabilityPage = () => {
                                     gap: "8px",
                                   }}
                                 >
-                                  <a
+                                  <ConfirmLink
                                     href={`https://logiquest.lightning.force.com/lightning/r/Oppotunities__c/${a["Id"]}/view`}
-                                    target="_blank"
-                                    rel="noreferrer"
+                                    description={a["Name"] || "案件名不明"}
                                   >
                                     {a["Name"] || "案件名不明"}
-                                  </a>
+                                  </ConfirmLink>
                                   {a["Haisyasinsei_komento__c"] && (
                                     <div className="info-tooltip">
                                       <button

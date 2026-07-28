@@ -1,0 +1,89 @@
+.confirm-link__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200; /* 検索履歴モーダル(1000)より前面 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.confirm-link {
+  box-sizing: border-box;
+  width: min(400px, 100%);
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.confirm-link__title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #1f2937;
+  overflow-wrap: anywhere;
+}
+
+.confirm-link__target {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #f4f7fb;
+  border: 1px solid #d8e2ef;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #123a63;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.confirm-link__note {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.confirm-link__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.confirm-link__yes,
+.confirm-link__no {
+  flex: 1 1 0;
+  padding: 12px 10px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.confirm-link__yes {
+  border: none;
+  background-color: #0366d6;
+  color: #ffffff;
+}
+.confirm-link__yes:hover { background-color: #024db0; }
+
+.confirm-link__no {
+  border: 1px solid #c8ccd4;
+  background-color: #ffffff;
+  color: #333333;
+}
+.confirm-link__no:hover { background-color: #f1f3f6; }
+
+.confirm-link__yes:focus-visible,
+.confirm-link__no:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .confirm-link { padding: 16px; }
+  .confirm-link__title { font-size: 16px; }
+  .confirm-link__actions { margin-top: 16px; }
+}

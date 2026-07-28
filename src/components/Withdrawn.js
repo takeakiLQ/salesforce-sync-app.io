@@ -5,9 +5,12 @@ import LocationSelectorModal from "./LocationSelectorModal";
 import SearchHistoryModal from "./SearchHistoryModal";
 import SessionExpiredNotice from "./SessionExpiredNotice";
 import Pagination from "./Pagination";
+import ScrollTopButton from "./ScrollTopButton";
+import ConfirmLink from "./ConfirmLink";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
+import useMediaQuery from "../utils/useMediaQuery";
 
 // 2万行まで取得（列オープン）
 const RANGE_EXITED = "離脱パートナー!A1:20000";
@@ -102,6 +105,154 @@ const formatDate = (dateStr) => {
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+};
+
+/* ====== 1行分の表示用データ（表・カードで共用） ====== */
+const buildRowView = (p) => {
+  const prefVal = pick(p, ["MailingState", "都道府県"]);
+  const cityVal = pick(p, ["MailingCity", "市区町村"]);
+  const streetVal = p["MailingStreet"] || "";
+
+  return {
+    partnerId: p["SF_ID__c"],
+    name: p["Name"] || "氏名不明",
+    kana: p["Name__c"] || "",
+    age: p["Now_Age__c"] || "",
+    gender: p["Gender__c"] || "",
+    addrFull:
+      prefVal || cityVal || streetVal
+        ? `${prefVal || ""}${cityVal || ""}${streetVal || ""}`
+        : p["Address__c"] || "",
+    phone: p["MobilePhone"],
+    approval: p["ApprovalDate__c"],
+    exitDate: pick(p, EXIT_DATE_KEYS),
+    lastWorkDate: p["最終稼働日"], // 正規化済み
+    quitDai: p["Quit_Dai__c"] || "",
+    quitChu: p["Quit_chu__c"] || "",
+    quitSho: p["Quit_sho__c"] || "",
+    quitDetail: p["Quit_detail__c"] || "",
+  };
+};
+
+const sfContactUrl = (partnerId) =>
+  `https://logiquest.lightning.force.com/lightning/r/Contact/${partnerId}/view`;
+
+/* ====== スマホ用カード ======
+   11列の表は狭い画面では横スクロールしても読めないため、
+   768px以下では1件1カードに描き分ける。 */
+const WithdrawnCard = ({ view, favorite, onToggleFavorite }) => {
+  const {
+    partnerId,
+    name,
+    kana,
+    age,
+    gender,
+    addrFull,
+    phone,
+    approval,
+    exitDate,
+    lastWorkDate,
+    quitDai,
+    quitChu,
+    quitSho,
+    quitDetail,
+  } = view;
+
+  // 「リサイクル可／不可」は再獲得の可否に直結するので目立たせる
+  const recyclable = quitChu.startsWith("【リサイクル可】")
+    ? "ok"
+    : quitChu.startsWith("【リサイクル不可】")
+    ? "ng"
+    : null;
+
+  return (
+    <div className={`wd-card${recyclable ? ` wd-card--${recyclable}` : ""}`}>
+      <div className="wd-card__head">
+        <button
+          type="button"
+          className={`star-btn ${favorite ? "on" : ""}`}
+          onClick={onToggleFavorite}
+          title={favorite ? "お気に入り解除" : "お気に入りに追加"}
+          aria-label="お気に入り"
+        >
+          {favorite ? "★" : "☆"}
+        </button>
+
+        <div className="wd-card__name">
+          {kana && <div className="kana-small">{kana}</div>}
+          <div>
+            {partnerId ? (
+              <ConfirmLink
+                href={sfContactUrl(partnerId)}
+                description={`${name} さんのパートナー情報`}
+                className="name-link"
+              >
+                {name}
+              </ConfirmLink>
+            ) : (
+              name
+            )}
+            <span className="wd-card__meta">
+              {age && `${age}歳`}
+              {age && gender && "・"}
+              {gender && `${gender}性`}
+            </span>
+          </div>
+        </div>
+
+        {recyclable && (
+          <span className={`wd-badge wd-badge--${recyclable}`}>
+            {recyclable === "ok" ? "リサイクル可" : "リサイクル不可"}
+          </span>
+        )}
+      </div>
+
+      <div className="wd-card__row">
+        <span className="wd-card__label">携帯</span>
+        <span className="wd-card__value">
+          {phone ? (
+            <a href={`tel:${phone}`} className="wd-card__phone">
+              {phone}
+            </a>
+          ) : (
+            <span className="wd-card__missing">なし</span>
+          )}
+        </span>
+      </div>
+
+      <div className="wd-card__row">
+        <span className="wd-card__label">住所</span>
+        <span className="wd-card__value">{addrFull || "-"}</span>
+      </div>
+
+      <div className="wd-card__dates">
+        <div>
+          <span className="wd-card__label">離脱日</span>
+          <span className={exitDate ? "" : "wd-card__missing"}>
+            {exitDate ? formatDate(exitDate) : "不明"}
+          </span>
+        </div>
+        <div>
+          <span className="wd-card__label">最終稼働</span>
+          <span className={lastWorkDate ? "" : "wd-card__missing"}>
+            {lastWorkDate ? formatDate(lastWorkDate) : "-"}
+          </span>
+        </div>
+        <div>
+          <span className="wd-card__label">承認日</span>
+          <span>{approval ? formatDate(approval) : "不明"}</span>
+        </div>
+      </div>
+
+      <div className="wd-card__reason">
+        <div className="wd-card__label">離脱判断</div>
+        <div className="wd-card__reason-line">{quitDai || "-"}</div>
+        <div className="wd-card__reason-line">{shortLabel(quitChu) || "-"}</div>
+        <div className="wd-card__reason-line">{quitSho || "-"}</div>
+        {quitDetail && <div className="wd-card__detail">{quitDetail}</div>}
+      </div>
+    </div>
+  );
 };
 
 /* ====== 共通モーダル ====== */
@@ -257,6 +408,10 @@ export default function Withdrawn() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  // 検索パネルの開閉（検索して結果が出たら畳む）
+  const [panelOpen, setPanelOpen] = useState(true);
+  // 狭い画面では結果を表ではなくカードで出す
+  const isNarrow = useMediaQuery("(max-width: 768px)");
 
   // 年齢・キーワード
   // 都道府県リスト
@@ -341,23 +496,51 @@ export default function Withdrawn() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  // 畳んだときに表示する条件サマリ
+  const searchSummary = useMemo(() => {
+    const parts = [];
+    if (showFavOnly) parts.push("★ お気に入りのみ");
+    if (selectedPrefs.length) parts.push(selectedPrefs.join("・"));
+    if (selectedCities.length) {
+      parts.push(
+        selectedCities.length > 3
+          ? `${selectedCities.slice(0, 3).join("・")} 他${selectedCities.length - 3}件`
+          : selectedCities.join("・")
+      );
+    }
+    if (ageMin !== "" || ageMax !== "") {
+      parts.push(`${ageMin || "下限なし"}〜${ageMax || "上限なし"}歳`);
+    }
+    if (keyword.trim()) parts.push(`「${keyword.trim()}」`);
+    if (quitDetailKeyword.trim()) parts.push(`詳細「${quitDetailKeyword.trim()}」`);
+    const kubun = [];
+    if (selectedDai.length) kubun.push(`大${selectedDai.length}`);
+    if (selectedChu.length) kubun.push(`中${selectedChu.length}`);
+    if (selectedSho.length) kubun.push(`小${selectedSho.length}`);
+    if (kubun.length) parts.push(`離脱判断 ${kubun.join("/")}件選択`);
+    return parts.length ? parts.join(" ｜ ") : "条件指定なし";
+  }, [
+    showFavOnly,
+    selectedPrefs,
+    selectedCities,
+    ageMin,
+    ageMax,
+    keyword,
+    quitDetailKeyword,
+    selectedDai,
+    selectedChu,
+    selectedSho,
+  ]);
+
   // その他
   const [errorMessage, setErrorMessage] = useState("");
   const [needReauth, setNeedReauth] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // モーダル
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState(null); // 'dai' | 'chu' | 'sho'
   const [modalTempSelection, setModalTempSelection] = useState([]);
   const [modalSearch, setModalSearch] = useState("");
-
-  /* ====== スクロールトップ ====== */
-  useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 300);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // 都道府県の変更で候補外の市区町村を自動除外
   useEffect(() => {
@@ -524,6 +707,8 @@ const handleSearch = () => {
     setFiltered(sortPartners(result, sortKey, sortOrder));
     setCurrentPage(1); // 結果表示開始は1ページ目に戻す
     setIsLoading(false);
+    // 結果があるときだけ畳む。0件なら条件を直したいはずなので開いたままにする
+    setPanelOpen(result.length === 0);
 
     if (effectiveUserId) {
       const elapsed = Math.round(performance.now() - startedAt);
@@ -758,15 +943,26 @@ const handleSearch = () => {
       <HeaderMenu title="離脱パートナー検索" />
 
       <div className="availability-page">
-        {showScrollTop && (
-          <button className="scroll-to-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-            検索パネルに戻る
-          </button>
-        )}
+        <ScrollTopButton />
 
         {needReauth && <SessionExpiredNotice onRetry={() => loadData({ force: true })} />}
 
+        {/* 検索後はパネルを畳み、条件サマリだけ見せて結果を前に出す */}
+        {!panelOpen && (
+          <div className="search-summary">
+            <div className="search-summary__text">{searchSummary}</div>
+            <button
+              type="button"
+              className="search-summary__toggle"
+              onClick={() => setPanelOpen(true)}
+            >
+              条件を変更
+            </button>
+          </div>
+        )}
+
         {/* ===== 検索パネル ===== */}
+        {panelOpen && (
         <div className="search-panel">
           {/* 住所：おしゃれチップ → モーダル（複数選択） */}
           <div style={{ marginTop: 4 }}>
@@ -858,32 +1054,9 @@ const handleSearch = () => {
             </div>
           </div>
 
-          {/* 並び替え＆実行 */}
+          {/* 実行 */}
           <div className="search-button-wrapper">
             {errorMessage && <div className="error-message">{errorMessage}</div>}
-
-            <div className="sort-controls" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}>
-              <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
-                <option value="_favorite">お気に入り</option>
-                <option value="ExitDate__c">離脱日</option>
-                <option value="Name">名前</option>
-                <option value="Now_Age__c">年齢</option>
-                <option value="Gender__c">性別</option>
-                <option value="ApprovalDate__c">承認日</option>
-                <option value="最終稼働日">最終稼働日</option>
-                <option value="Address__c">住所</option>
-              </select>
-              <button className={`order-toggle ${sortOrder}`} onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}>
-                {sortOrder === "asc" ? "▲ 昇順" : "▼ 降順"}
-              </button>
-            </div>
-
-            {hasSearched && !isLoading && (
-              <div className="result-count">
-                検索結果：{filtered.length} 件（{startIndex}–{endIndex} 件を表示）<br />
-                ページ： {currentPage} / {totalPages}
-              </div>
-            )}
 
 <div
   className="fav-only"
@@ -916,6 +1089,7 @@ const handleSearch = () => {
             </button>
           </div>
         </div>
+        )}
 
         {/* ===== 検索前ガイダンス／ローディング ===== */}
         {!hasSearched && !isLoading && (
@@ -925,6 +1099,48 @@ const handleSearch = () => {
           <div className="loading-box">
             <div className="spinner" />
             <div className="loading-text">検索中...</div>
+          </div>
+        )}
+
+        {/* 件数と並び替えは検索条件ではないので、結果リストの直上に置く。
+            テーブルのヘッダクリックでも並び替えできるが、狭い画面では
+            横スクロールしないとヘッダに届かないため、ここにも残している。 */}
+        {hasSearched && !isLoading && !needReauth && (
+          <div className="result-toolbar">
+            <div className="result-toolbar__count">
+              <strong>{filtered.length}</strong> 件
+              {filtered.length > 0 && (
+                <span className="result-toolbar__range">
+                  （{startIndex}–{endIndex} 件を表示／{currentPage} / {totalPages}ページ）
+                </span>
+              )}
+            </div>
+
+            <div className="result-toolbar__controls">
+              <div className="sort-controls">
+                <select
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value)}
+                  aria-label="並び替え"
+                >
+                  <option value="_favorite">お気に入り</option>
+                  <option value="ExitDate__c">離脱日</option>
+                  <option value="Name">名前</option>
+                  <option value="Now_Age__c">年齢</option>
+                  <option value="Gender__c">性別</option>
+                  <option value="ApprovalDate__c">承認日</option>
+                  <option value="最終稼働日">最終稼働日</option>
+                  <option value="Address__c">住所</option>
+                </select>
+                <button
+                  type="button"
+                  className={`order-toggle ${sortOrder}`}
+                  onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
+                >
+                  {sortOrder === "asc" ? "▲ 昇順" : "▼ 降順"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -941,7 +1157,19 @@ const handleSearch = () => {
         <div style={{ marginTop: 16 }}>
           {!hasSearched || needReauth ? null : filtered.length === 0 && !isLoading ? (
             <div style={{ textAlign: "center", marginTop: 20 }}>該当するパートナーはいません</div>
-          ) : !isLoading ? (
+          ) : isLoading ? null : isNarrow ? (
+            /* 狭い画面：11列の表は読めないのでカードに描き分ける */
+            <div className="wd-cards">
+              {pagedRows.map((p, idx) => (
+                <WithdrawnCard
+                  key={`${p["SF_ID__c"] || p["Name"]}-${(currentPage - 1) * PAGE_SIZE + idx}`}
+                  view={buildRowView(p)}
+                  favorite={isFav(p)}
+                  onToggleFavorite={() => toggleFavorite(p)}
+                />
+              ))}
+            </div>
+          ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={styles.table} className="result-table">
                 <thead>
@@ -962,95 +1190,73 @@ const handleSearch = () => {
                 </thead>
                 <tbody>
                   {pagedRows.map((p, idx) => {
-                    
-                    const partnerId = p["SF_ID__c"];
-                    const name = p["Name"] || "氏名不明";
-                    const kana = p["Name__c"] || "";
-                    const age = p["Now_Age__c"] || "";
-                    const gender = p["Gender__c"] || "";
-
-                    const prefVal = pick(p, ["MailingState", "都道府県"]);
-                    const cityVal = pick(p, ["MailingCity", "市区町村"]);
-                    const streetVal = p["MailingStreet"] || "";
-                    const addrFull =
-                      prefVal || cityVal || streetVal
-                        ? `${prefVal || ""}${cityVal || ""}${streetVal || ""}`
-                        : p["Address__c"] || "";
-
-                    const phone = p["MobilePhone"];
-                    const approval = p["ApprovalDate__c"];
-                    const exitDate = pick(p, EXIT_DATE_KEYS);
-                    const lastWorkDate = p["最終稼働日"]; // 正規化済み
-
-                    const quitDai = p["Quit_Dai__c"] || "";
-                    const quitChu = p["Quit_chu__c"] || "";
-                    const quitSho = p["Quit_sho__c"] || "";
-                    const quitDetail = p["Quit_detail__c"] || "";
-
+                    const v = buildRowView(p);
                     return (
-
-                      
-                      <tr key={`${partnerId || name}-${(currentPage - 1) * PAGE_SIZE + idx}`}>
-<td style={{ textAlign: "center" }}>
-  <button
-    className={`star-btn ${isFav(p) ? "on" : ""}`}
-    onClick={() => toggleFavorite(p)}
-    title={isFav(p) ? "お気に入り解除" : "お気に入りに追加"}
-    aria-label="favorite"
-  >
-    {isFav(p) ? "★" : "☆"}
-  </button>
-</td>
-
+                      <tr key={`${v.partnerId || v.name}-${(currentPage - 1) * PAGE_SIZE + idx}`}>
+                        <td style={{ textAlign: "center" }}>
+                          <button
+                            className={`star-btn ${isFav(p) ? "on" : ""}`}
+                            onClick={() => toggleFavorite(p)}
+                            title={isFav(p) ? "お気に入り解除" : "お気に入りに追加"}
+                            aria-label="favorite"
+                          >
+                            {isFav(p) ? "★" : "☆"}
+                          </button>
+                        </td>
 
                         {/* 氏名：かな（上）＋氏名（下） */}
                         <td style={{ minWidth: 140 }}>
-                          {kana && <div className="kana-small">{kana}</div>}
+                          {v.kana && <div className="kana-small">{v.kana}</div>}
                           <div>
-                            {partnerId ? (
-                              <a
-                                href={`https://logiquest.lightning.force.com/lightning/r/Contact/${partnerId}/view`}
-                                target="_blank"
-                                rel="noreferrer"
+                            {v.partnerId ? (
+                              <ConfirmLink
+                                href={sfContactUrl(v.partnerId)}
+                                description={`${v.name} さんのパートナー情報`}
                                 className="name-link"
                               >
-                                {name}
-                              </a>
+                                {v.name}
+                              </ConfirmLink>
                             ) : (
-                              name
+                              v.name
                             )}
                           </div>
                         </td>
 
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>{age}</td>
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>{gender}</td>
+                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>{v.age}</td>
+                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>{v.gender}</td>
 
                         {/* 住所：狭め＆折返し */}
                         <td style={{ minWidth: 300, whiteSpace: "normal", wordBreak: "break-word" }}>
-                          {addrFull}
+                          {v.addrFull}
                         </td>
 
                         <td style={{ whiteSpace: "nowrap" }}>
-                          {phone ? <a href={`tel:${phone}`}>{phone}</a> : <span style={{ color: "#990000" }}>なし</span>}
+                          {v.phone ? (
+                            <a href={`tel:${v.phone}`}>{v.phone}</a>
+                          ) : (
+                            <span style={{ color: "#990000" }}>なし</span>
+                          )}
                         </td>
 
-                        <td style={{ whiteSpace: "nowrap" }}>{approval ? formatDate(approval) : "不明"}</td>
-
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap", color: lastWorkDate ? undefined : "#990000" }}>
-                          {lastWorkDate ? formatDate(lastWorkDate) : "-"}
+                        <td style={{ whiteSpace: "nowrap" }}>
+                          {v.approval ? formatDate(v.approval) : "不明"}
                         </td>
 
-                        <td style={{ whiteSpace: "nowrap", color: exitDate ? undefined : "#990000" }}>
-                          {exitDate ? formatDate(exitDate) : "不明"}
+                        <td style={{ textAlign: "center", whiteSpace: "nowrap", color: v.lastWorkDate ? undefined : "#990000" }}>
+                          {v.lastWorkDate ? formatDate(v.lastWorkDate) : "-"}
+                        </td>
+
+                        <td style={{ whiteSpace: "nowrap", color: v.exitDate ? undefined : "#990000" }}>
+                          {v.exitDate ? formatDate(v.exitDate) : "不明"}
                         </td>
 
                         <td style={{ minWidth: 280 }}>
-                          {(quitDai || "-")} / {(shortLabel(quitChu) || "-")} / {(quitSho || "—")}
+                          {(v.quitDai || "-")} / {(shortLabel(v.quitChu) || "-")} / {(v.quitSho || "—")}
                         </td>
 
                         {/* 判断（詳細）：ワイド */}
                         <td style={{ minWidth: 420, whiteSpace: "normal", wordBreak: "break-word" }}>
-                          {quitDetail}
+                          {v.quitDetail}
                         </td>
                       </tr>
                     );
@@ -1058,7 +1264,7 @@ const handleSearch = () => {
                 </tbody>
               </table>
             </div>
-          ) : null}
+          )}
         </div>
 
         {/* ===== BOTTOM ページャ（リスト下） ===== */}

@@ -21,11 +21,11 @@ const MENU_LIST = [
   { label: "案件分析", path: "/general-analysis" },
 ];
 
-const resolveUserName = () => {
-  const email =
-    (typeof window !== "undefined" && localStorage.getItem("userEmail")) || "未取得";
-  return email.includes("@") ? email.split("@")[0] : email;
-};
+const resolveUserEmail = () =>
+  (typeof window !== "undefined" && localStorage.getItem("userEmail")) || "未取得";
+
+const toShortName = (email) =>
+  email.includes("@") ? email.split("@")[0] : email;
 
 const HeaderMenu = ({ title, userName }) => {
   const navigate = useNavigate();
@@ -33,7 +33,10 @@ const HeaderMenu = ({ title, userName }) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  const displayName = userName || resolveUserName();
+  const userEmail = resolveUserEmail();
+  const displayName = userName || toShortName(userEmail);
+  // スマホでは頭文字だけを丸で表示し、幅をタイトルに譲る
+  const initial = (displayName.trim()[0] || "?").toUpperCase();
   const close = useCallback(() => setOpen(false), []);
 
   // メニュー外クリック / Escape で閉じる
@@ -82,7 +85,9 @@ const HeaderMenu = ({ title, userName }) => {
         </button>
         <h1 className="app-title">{title}</h1>
       </div>
+      {/* PCは氏名、スマホは頭文字の丸（CSSで切り替え） */}
       <div className="user-info">{displayName}</div>
+      <div className="user-avatar" aria-hidden="true">{initial}</div>
 
       {open && (
         <div className="menu">
@@ -103,6 +108,12 @@ const HeaderMenu = ({ title, userName }) => {
           <button type="button" className="menu-button logout" onClick={handleLogout}>
             ログアウト
           </button>
+
+          {/* ログイン中のアカウント（ヘッダーでは頭文字のみのため、ここで全体を見せる） */}
+          <div className="menu-account" title={userEmail}>
+            <span className="menu-account__label">ログイン中</span>
+            <span className="menu-account__value">{userEmail}</span>
+          </div>
         </div>
       )}
     </div>

@@ -7,7 +7,9 @@ import React, {
 } from "react";
 import HeaderMenu from "./HeaderMenu";
 import SessionExpiredNotice from "./SessionExpiredNotice";
+import ConfirmLink from "./ConfirmLink";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
+import useMediaQuery from "../utils/useMediaQuery";
 import "./AnalysisPage.css";
 import "./SubcontractorAnalysisPage.css";
 
@@ -77,6 +79,8 @@ const SubcontractorAnalysisPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [authExpired, setAuthExpired] = useState(false);
+  // 狭い画面では12列の表ではなくカードで出す
+  const isNarrow = useMediaQuery("(max-width: 768px)");
 
   // グラフ選択状態
   const [selectedGroup, setSelectedGroup] = useState(null); // 主管
@@ -646,7 +650,141 @@ const SubcontractorAnalysisPage = () => {
                   </button>
                 </div>
 
-                {/* 12列あるため、狭い画面では横スクロールさせる */}
+                {/* 狭い画面はカード表示。ヘッダクリックで並び替えできないため
+                    ここに並び替えコントロールを出す */}
+                {isNarrow && (
+                  <div className="anken-sort">
+                    <label className="anken-sort__label">
+                      並び替え
+                      <select
+                        value={sortConfig.key || ""}
+                        onChange={(e) =>
+                          setSortConfig({
+                            key: e.target.value || null,
+                            direction: sortConfig.direction,
+                          })
+                        }
+                      >
+                        <option value="">指定なし</option>
+                        {headers
+                          .filter((h) => h.sortable)
+                          .map((h) => (
+                            <option key={h.key} value={h.key}>
+                              {h.label}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      className="anken-sort__order"
+                      onClick={() =>
+                        setSortConfig((prev) => ({
+                          ...prev,
+                          direction: prev.direction === "asc" ? "desc" : "asc",
+                        }))
+                      }
+                      disabled={!sortConfig.key}
+                    >
+                      {sortConfig.direction === "asc" ? "▲ 昇順" : "▼ 降順"}
+                    </button>
+                  </div>
+                )}
+
+                {isNarrow ? (
+                  <div className="anken-cards">
+                    {pageRows.map((row, idx) => {
+                      const marginPct = calcGrossMarginPct(row);
+                      const profit = toNumber(row["Yotei_Arari_Keisan__c"]);
+                      return (
+                        <div className="anken-card" key={idx}>
+                          <div className="anken-card__head">
+                            <div className="anken-card__partner">
+                              {row["Partner__r.ID_18__c"] ? (
+                                <ConfirmLink
+                                  href={sfLink(row["Partner__r.ID_18__c"])}
+                                  description={`協力会社：${row["Partner__r.Name"] || "不明"}`}
+                                  className="anken-card__link"
+                                >
+                                  {row["Partner__r.Name"] || "不明"}
+                                </ConfirmLink>
+                              ) : (
+                                row["Partner__r.Name"] || "不明"
+                              )}
+                            </div>
+                            <div
+                              className={`anken-card__rate ${
+                                profit < 0 ? "is-negative" : ""
+                              }`}
+                            >
+                              <span className="anken-card__rate-label">粗利率</span>
+                              {formatRate(marginPct) || "-"}
+                            </div>
+                          </div>
+
+                          <div className="anken-card__project">
+                            <span className="anken-card__label">案件名</span>
+                            {row["Id"] ? (
+                              <ConfirmLink
+                                href={sfLink(row["Id"])}
+                                description={`案件：${row["Name"] || "案件名不明"}`}
+                                className="anken-card__link"
+                              >
+                                {row["Name"] || "案件名不明"}
+                              </ConfirmLink>
+                            ) : (
+                              row["Name"] || "案件名不明"
+                            )}
+                          </div>
+
+                          <div className="anken-card__tags">
+                            <span className="anken-tag">
+                              {GROUP_LABELS[row["Group_FY22__c"]] ||
+                                row["Group_FY22__c"] ||
+                                "主管不明"}
+                            </span>
+                            {row["Branch__c"] && (
+                              <span className="anken-tag">{row["Branch__c"]}</span>
+                            )}
+                            <span className="anken-tag">
+                              {row["KADO_YOTEI_NISSUU_AUTO__c"] || 0}コマ
+                            </span>
+                          </div>
+
+                          <div className="anken-card__money">
+                            <div>
+                              <span className="anken-card__label">売上/月</span>
+                              <span>{formatMoney(row["Scheduled_sales_calculation__c"]) || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="anken-card__label">原価/月</span>
+                              <span>{formatMoney(row["Yotei_Genka_keisan__c"]) || "-"}</span>
+                            </div>
+                            <div>
+                              <span className="anken-card__label">粗利/月</span>
+                              <span className={profit < 0 ? "is-negative" : ""}>
+                                {formatMoney(row["Yotei_Arari_Keisan__c"]) || "-"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="anken-card__start">
+                            初回開始 {row["初回開始日"] || "不明"}
+                            <span className="anken-card__years">
+                              （{calcYears(row["初回開始日"])}年）
+                            </span>
+                          </div>
+
+                          {row["Haisyasinsei_komento__c"] && (
+                            <div className="anken-card__comment">
+                              {row["Haisyasinsei_komento__c"]}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                 <div className="anken-table-scroll">
                 <table className="anken-table">
                   <thead>
@@ -684,14 +822,13 @@ const SubcontractorAnalysisPage = () => {
                         {/* 協力会社名（Contactリンク） */}
                         <td className="cell col-m wrap">
                           {row["Partner__r.ID_18__c"] ? (
-                            <a
+                            <ConfirmLink
                               href={sfLink(row["Partner__r.ID_18__c"])}
-                              target="_blank"
-                              rel="noreferrer"
+                              description={`協力会社：${row["Partner__r.Name"] || "不明"}`}
                               className="name-link"
                             >
                               {row["Partner__r.Name"] || "不明"}
-                            </a>
+                            </ConfirmLink>
                           ) : (
                             row["Partner__r.Name"] || "不明"
                           )}
@@ -700,14 +837,13 @@ const SubcontractorAnalysisPage = () => {
                         {/* 案件名（レコードIDリンク） */}
                         <td className="cell col-l wrap">
                           {row["Id"] ? (
-                            <a
+                            <ConfirmLink
                               href={sfLink(row["Id"])}
-                              target="_blank"
-                              rel="noreferrer"
+                              description={`案件：${row["Name"] || "案件名不明"}`}
                               className="name-link"
                             >
                               {row["Name"] || ""}
-                            </a>
+                            </ConfirmLink>
                           ) : (
                             row["Name"] || ""
                           )}
@@ -743,6 +879,7 @@ const SubcontractorAnalysisPage = () => {
                   </tbody>
                 </table>
                 </div>
+                )}
 
                 {/* 下部ページネーション */}
                 {renderPagination()}
