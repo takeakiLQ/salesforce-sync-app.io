@@ -30,8 +30,34 @@
   transition: transform 0.2s ease;
 }
 
-.ptr__circle.is-refreshing {
+/* 更新中の全画面オーバーレイ。
+   pointer-events を既定（auto）のままにして、下の操作を受け付けないようにする。 */
+.ptr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+/* 見た目は shared.css の .spinner に合わせる */
+.ptr-overlay__spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #d0d5dd;
+  border-top-color: #1976d2;
+  border-radius: 50%;
   animation: ptr-spin 0.9s linear infinite;
+}
+
+.ptr-overlay__label {
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: #555;
 }
 
 .ptr__label {
@@ -51,6 +77,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ptr__circle.is-refreshing { animation: none; }
+  .ptr-overlay__spinner { animation: none; }
   .ptr__icon { transition: none; }
 }

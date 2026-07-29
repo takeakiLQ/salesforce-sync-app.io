@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./PullToRefresh.css";
 
 /**
@@ -11,6 +12,13 @@ import "./PullToRefresh.css";
  * props:
  *   onRefresh: 実行する処理。省略時はページを再読み込みする。
  *              Promise を返した場合は完了まで表示を維持する。
+ *
+ * 更新中は全画面のオーバーレイで覆う。
+ * データが差し替わる途中で絞り込みを操作されると、
+ * 消えた値を選んだままになるなど中途半端な状態が起きるため、
+ * その間は操作させない。
+ * 併せて、ページ側がそれぞれスピナーを出すと二重に回ってしまうので、
+ * 更新中の表示はこのコンポーネントに一本化している。
  */
 const THRESHOLD = 70; // ここまで引いたら実行
 const MAX_PULL = 110; // 引ける上限
@@ -112,7 +120,18 @@ const PullToRefresh = ({ onRefresh }) => {
     };
   }, [runRefresh, updatePull]);
 
-  if (pull <= 0 && !refreshing) return null;
+  // 更新中は全画面で覆い、操作を受け付けない
+  if (refreshing) {
+    return createPortal(
+      <div className="ptr-overlay" role="alert" aria-live="polite">
+        <div className="ptr-overlay__spinner" />
+        <div className="ptr-overlay__label">更新中...</div>
+      </div>,
+      document.body
+    );
+  }
+
+  if (pull <= 0) return null;
 
   const ready = pull >= THRESHOLD;
 
@@ -122,13 +141,13 @@ const PullToRefresh = ({ onRefresh }) => {
       style={{ transform: `translate(-50%, ${pull}px)` }}
       aria-live="polite"
     >
-      <div className={`ptr__circle ${refreshing ? "is-refreshing" : ""}`}>
+      <div className="ptr__circle">
         <svg
           className="ptr__icon"
           viewBox="0 0 24 24"
           aria-hidden="true"
           focusable="false"
-          style={{ transform: refreshing ? "none" : `rotate(${ready ? 180 : 0}deg)` }}
+          style={{ transform: `rotate(${ready ? 180 : 0}deg)` }}
         >
           <polyline
             points="6 10 12 16 18 10"
@@ -140,9 +159,7 @@ const PullToRefresh = ({ onRefresh }) => {
           />
         </svg>
       </div>
-      <span className="ptr__label">
-        {refreshing ? "更新中..." : ready ? "離して更新" : "引いて更新"}
-      </span>
+      <span className="ptr__label">{ready ? "離して更新" : "引いて更新"}</span>
     </div>
   );
 };

@@ -1,69 +1,9 @@
-/* ヘッダなどはそのまま。下はテーブル＆グラフ強化分 */
+/* 協力会社分析ページ固有のスタイル（棒グラフ）。
 
-.anken-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-  font-size: var(--fs-base);
-  background: #fff;
-}
+   表・カード・絞り込み入力・並び替えは案件分析ページと共通のため
+   AnalysisPage.css へ移動した。ここに残すのはこのページだけの
+   グラフ部分に限る。 */
 
-.anken-table th,
-.anken-table td {
-  border: 1px solid #e5e7eb;
-  padding: 6px 8px;
-  vertical-align: top;
-}
-
-.anken-table thead th {
-  background: #f8fafc;
-  font-weight: 700;
-  user-select: none;
-}
-
-.anken-table thead th.th-click {
-  cursor: pointer;
-}
-
-.anken-table thead th.th-click:hover {
-  background: #eef2f7;
-}
-
-.anken-table thead th.no-sort {
-  cursor: default;
-}
-
-.anken-table tbody tr:nth-child(even) {
-  background: #fafafa;
-}
-
-.anken-table tbody tr:hover {
-  background: #f1f7ff;
-}
-
-/* 文字折返し・右寄せ */
-.cell.wrap { white-space: normal; word-break: break-word; }
-.cell.nowrap { white-space: nowrap; }
-.cell.right { text-align: right; }
-
-/* 幅プリセット */
-.col-xs { width: 40px;  max-width: 50px; }
-.col-s  { width: 50px; max-width: 100px; }
-.col-m  { width: 160px; max-width: 200px; }
-.col-l  { width: 240px; max-width: 320px; }
-.col-xl { width: 420px; }
-
-/* リンクは細字・青・下線。
-   セレクタは .anken-table 配下に限定する。
-   （グローバルだと SearchPage.css の .name-link より後に読み込まれ、
-     検索ページ側の太字指定まで細字に上書きしてしまっていた） */
-.anken-table .name-link {
-  color: #0b69d7;
-  text-decoration: underline;
-  font-weight: 400;
-}
-
-/* グラフ */
 .chart-box {
   margin: 24px 0;
   padding: 16px;
@@ -118,281 +58,13 @@
 .bar-year { background: #1976d2; }
 .bar-dim  { opacity: 0.35; filter: grayscale(0.3); }
 
-/* .clear-btn は src/shared.css に統合済み */
-
-/* 行詳細ヘッダ */
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.detail-search {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
-  margin: 12px 0;
-}
-
-.detail-search__label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: var(--fs-base);
-  color: #344054;
-}
-
-.detail-search__label input {
-  /* content-box のままだと width:100% に padding+border が加算されて
-     画面からはみ出すため border-box にする */
-  box-sizing: border-box;
-  width: 260px;
-  max-width: 100%;
-  padding: 6px 10px;
-  border: 1px solid #d0d5dd;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-base);
-}
-.detail-search__label input:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 4px rgba(74, 144, 226, 0.5);
-}
-
-.detail-search__clear {
-  padding: 6px 10px;
-  border: 1px solid #d0d5dd;
-  background: #fff;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-base);
-  cursor: pointer;
-}
-.detail-search__clear:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.detail-search__clear:not(:disabled):hover {
-  background: #f6f7f9;
-}
-
-/* .spinner / .loading-text / @keyframes spin は src/shared.css に統合済み */
-.spinner-wrapper {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px; padding: 24px;
-}
-
-
-
-/* 折返しをしっかり効かせる */
-.anken-table .cell.wrap {
-  white-space: normal;
-  word-break: break-word;   /* 日本語の長い語もOK */
-  overflow-wrap: anywhere;  /* 英数字の長いURL/IDにも強制改行 */
-}
-
-/* リンク自体も折返し可能に */
-.anken-table .name-link {
-  white-space: normal;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
+/* .clear-btn / .spinner / .loading-text は src/shared.css に統合済み */
 /* ページネーションは Pagination.css に統合済み */
-
-/* ===============================
-   スマホ用カード（768px以下）
-   12列の表は横スクロールしても読めないため、1件1カードに描き分ける。
-   =============================== */
-.anken-sort {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.anken-sort__label {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: var(--fs-sm);
-  color: #6b7280;
-}
-
-.anken-sort__label select {
-  width: 100%;
-  padding: 9px 8px;
-  border: 1px solid #d0d5dd;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-base);
-}
-
-.anken-sort__order {
-  flex: 0 0 auto;
-  padding: 9px 12px;
-  border: 1px solid #d0d5dd;
-  border-radius: var(--radius-sm);
-  background: #fff;
-  font-size: var(--fs-base);
-  font-weight: 700;
-  cursor: pointer;
-}
-.anken-sort__order:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.anken-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 4px;
-}
-
-.anken-card {
-  padding: 12px 14px;
-  background: #fff;
-  border: 1px solid #c3d3e6;
-  border-left: 5px solid #9fb6ce;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 7px rgba(16, 42, 74, 0.14);
-}
-
-.anken-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.anken-card__partner {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--fs-md);
-  font-weight: 700;
-  overflow-wrap: anywhere;
-  line-height: 1.4;
-}
-
-.anken-card__link {
-  color: #0b63ce;
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-.anken-card__link:hover { text-decoration: underline; }
-
-.anken-card__rate {
-  flex: 0 0 auto;
-  text-align: right;
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  color: #123a63;
-  line-height: 1.2;
-}
-.anken-card__rate.is-negative { color: #c62828; }
-
-.anken-card__rate-label {
-  display: block;
-  font-size: var(--fs-xs);
-  font-weight: 400;
-  color: #6b7280;
-}
-
-.anken-card__project {
-  margin-top: 8px;
-  font-size: var(--fs-base);
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-/* 協力会社名と紛れないよう、案件名にはラベルを付ける */
-.anken-card__project .anken-card__label {
-  display: block;
-  margin-bottom: 1px;
-}
-
-.anken-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.anken-tag {
-  padding: 3px 9px;
-  background: #eef2f7;
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  color: #405060;
-  white-space: nowrap;
-}
-
-/* 売上・原価・粗利は比較して見るものなので横3列 */
-.anken-card__money {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eef2f7;
-}
-.anken-card__money > div {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  font-size: var(--fs-base);
-  font-weight: 700;
-  color: #1f2937;
-  text-align: right;
-}
-.anken-card__money .is-negative { color: #c62828; }
-
-.anken-card__label {
-  font-size: var(--fs-xs);
-  font-weight: 400;
-  color: #6b7280;
-}
-
-.anken-card__start {
-  margin-top: 10px;
-  font-size: var(--fs-sm);
-  color: #4b5563;
-}
-.anken-card__years { color: #123a63; font-weight: 700; }
-
-.anken-card__comment {
-  margin-top: 8px;
-  padding: 8px 10px;
-  background: #f7f9fc;
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-sm);
-  line-height: 1.6;
-  color: #444;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 
 /* ===============================
    タブレット
    =============================== */
 @media (max-width: 768px) {
-  /* 12列あるため、テーブルは横スクロールに任せて潰さない */
-  .anken-table-scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 0 -4px;
-    padding: 0 4px;
-  }
-
-  .anken-table {
-    min-width: 900px;
-    font-size: var(--fs-base);
-  }
-
-  .anken-table th,
-  .anken-table td { padding: 5px 6px; }
-
   /* グラフは1列に積む */
   .charts-row { gap: 12px; }
   .chart-box {
@@ -403,41 +75,16 @@
 
   .bar-label { width: 92px; font-size: var(--fs-base); }
   .bar { height: 20px; font-size: var(--fs-sm); }
-
-  /* 絞り込みは「ラベル＋入力」を1行、クリアを同じ行の右端に置く */
-  .detail-header { flex-wrap: wrap; }
-  .detail-search {
-    gap: 8px;
-    align-items: stretch;
-  }
-  .detail-search__label {
-    flex: 1 1 calc(100% - 76px);
-    min-width: 0;
-  }
-  .detail-search__label input { width: 100%; }
-  .detail-search__clear {
-    flex: 0 0 auto;
-    align-self: flex-end;
-    padding: 8px 12px;
-  }
 }
 
 /* ===============================
    スマホ
    =============================== */
 @media (max-width: 480px) {
-  .anken-table { min-width: 860px; font-size: var(--fs-sm); }
-
   .chart-box { padding: 10px; }
   .chart-header h3 { font-size: var(--fs-base); margin: 0; }
 
   .bar-label { width: 72px; font-size: var(--fs-sm); }
   .bar-container { margin-left: 6px; }
   .bar { height: 18px; padding-left: 6px; }
-
-  .detail-header h3 { font-size: var(--fs-base); margin: 0; }
-
-  /* 指で押せる大きさを確保する */
-  .clear-btn,
-  .detail-search__clear { padding: 8px 12px; font-size: var(--fs-base); }
 }

@@ -9,6 +9,7 @@ import SearchHistoryModal from "./SearchHistoryModal";
 import SessionExpiredNotice from "./SessionExpiredNotice";
 import Pagination from "./Pagination";
 import ScrollTopButton from "./ScrollTopButton";
+import PullToRefresh from "./PullToRefresh";
 import ConfirmLink from "./ConfirmLink";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
@@ -758,6 +759,7 @@ const AvailabilityPage = () => {
 
       <div className="availability-page">
         <ScrollTopButton />
+        <PullToRefresh onRefresh={() => loadData({ force: true })} />
 
         {authExpired && <SessionExpiredNotice onRetry={() => loadData({ force: true })} />}
 

@@ -8,46 +8,15 @@ import React, {
 import HeaderMenu from "./HeaderMenu";
 import SessionExpiredNotice from "./SessionExpiredNotice";
 import ConfirmLink from "./ConfirmLink";
+import ScrollTopButton from "./ScrollTopButton";
+import PullToRefresh from "./PullToRefresh";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 import useMediaQuery from "../utils/useMediaQuery";
+import { GROUP_LABELS, GROUP_ORDER } from "../utils/groupOptions";
 import "./AnalysisPage.css";
 import "./SubcontractorAnalysisPage.css";
 
 const RANGE_ASSIGN = "稼働中案件!A1:ZZ";
-
-// グラフ用の表示名マッピング
-const GROUP_LABELS = {
-  北海道主管: "北海道",
-  東北主管: "東北",
-  北関東北信越主管: "北関東北信越",
-  東関東主管: "東関東",
-  "都市物流営業部（定期便・東京）": "東京",
-  "都市物流営業部（定期便・神奈川）": "神奈川",
-  東海主管: "東海",
-  京滋奈主管: "京滋奈",
-  大阪和歌山主管: "大阪和歌山",
-  兵庫主管: "兵庫",
-  中国主管: "中国",
-  四国主管: "四国",
-  九州主管: "九州",
-};
-
-// 並び順
-const GROUP_ORDER = [
-  "北海道主管",
-  "東北主管",
-  "北関東北信越主管",
-  "東関東主管",
-  "都市物流営業部（定期便・東京）",
-  "都市物流営業部（定期便・神奈川）",
-  "東海主管",
-  "京滋奈主管",
-  "大阪和歌山主管",
-  "兵庫主管",
-  "中国主管",
-  "四国主管",
-  "九州主管",
-];
 
 const SubcontractorAnalysisPage = () => {
   // 数値変換
@@ -179,9 +148,11 @@ const SubcontractorAnalysisPage = () => {
       ? `https://logiquest.lightning.force.com/one/one.app#/sObject/${id}/view`
       : null;
 
-  /** データ取得（sheetsApi 側でキャッシュされるため再訪時は即時） */
-  const loadData = useCallback(async ({ force = false } = {}) => {
-    setLoading(true);
+  /** データ取得（sheetsApi 側でキャッシュされるため再訪時は即時）
+   *  silent: 全画面スピナーを出さずに取り直す。
+   *  引いて更新はそれ自身がインジケータを出すため、二重に回さない。 */
+  const loadData = useCallback(async ({ force = false, silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setError("");
     setAuthExpired(false);
     try {
@@ -202,7 +173,7 @@ const SubcontractorAnalysisPage = () => {
         setError("データ取得中にエラーが発生しました。");
       }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -889,6 +860,9 @@ const SubcontractorAnalysisPage = () => {
           </>
         )}
       </div>
+
+      <ScrollTopButton />
+      <PullToRefresh onRefresh={() => loadData({ force: true, silent: true })} />
     </div>
   );
 };

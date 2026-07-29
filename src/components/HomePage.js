@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './HomePage.css';
 import HeaderMenu from './HeaderMenu';
+import ScrollTopButton from './ScrollTopButton';
 import { useNavigate } from 'react-router-dom';
 
 export default function HomePage() {
@@ -61,6 +62,8 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      <ScrollTopButton />
     </div>
   );
 }
