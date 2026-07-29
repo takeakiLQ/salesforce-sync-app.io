@@ -1,22 +1,450 @@
 /* GeneralAnalysisPage.css
-   ヘッダー／メニューは HeaderMenu.css、ページ枠は AnalysisPage.css に統合済み。 */
+   案件分析ページ固有のスタイル（サマリと絞り込みチップ）。
+   ページ枠・表・カード・並び替えは AnalysisPage.css、
+   ヘッダー／メニューは HeaderMenu.css にある。 */
 
-.under-construction {
-  background-color: #f0f4f8;
-  border-left: 5px solid #007bff;
-  padding: 1.5rem;
+/* ===============================
+   件数・金額のサマリ
+   =============================== */
+.ga-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #c3d3e6;
+  border-left: 5px solid #1976d2;
   border-radius: var(--radius-md);
-  margin-top: 2rem;
-  font-size: var(--fs-md);
-  color: #333;
-  line-height: 1.8;
 }
 
+.ga-summary__main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ga-summary__count {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #123a63;
+}
+
+.ga-summary__unit {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: #123a63;
+}
+
+.ga-summary__total {
+  font-size: var(--fs-sm);
+  color: #6b7280;
+}
+
+.ga-summary__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.ga-summary__stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ga-summary__stats dt {
+  font-size: var(--fs-xs);
+  color: #6b7280;
+}
+
+.ga-summary__stats dd {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: #1f2937;
+  font-variant-numeric: tabular-nums;
+}
+
+.ga-summary__stats dd.is-negative { color: #c62828; }
+
+/* ===============================
+   絞り込み
+   =============================== */
+.ga-filters {
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-md);
+}
+
+.ga-filters__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ga-filters__title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.ga-facet + .ga-facet { margin-top: 14px; }
+
+/* 入力欄の下に置く、条件の効き方の説明 */
+.ga-filters__note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+  color: #6b7280;
+}
+
+.ga-facet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ga-facet__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  color: #344054;
+}
+
+.ga-facet__badge {
+  min-width: 18px;
+  padding: 1px 6px;
+  background: #1976d2;
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+
+.ga-facet__empty {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: #6b7280;
+}
+
+.ga-facet__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* チップ本体。指で押せるよう高さを確保する */
+.ga-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
+  color: #344054;
+  cursor: pointer;
+}
+
+.ga-chip:hover { background: #eef2f7; }
+
+.ga-chip.is-on {
+  background: #1976d2;
+  border-color: #1976d2;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 他の条件で0件になった選択肢。選択中なら解除できるよう残す */
+.ga-chip.is-empty:not(.is-on) {
+  opacity: 0.45;
+}
+
+.ga-chip__count {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: #6b7280;
+}
+
+.ga-chip.is-on .ga-chip__count { color: #e3edf9; }
+
+/* ===============================
+   単価などの補助表示
+   =============================== */
+
+/* 月額の下に添える1日あたり単価。表・カードで共通 */
+.ga-sub {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+/* パートナー区分。大きさは他のタグと揃え、色だけで見分けさせる。
+   同じ色をカード左端の帯にも使う（.anken-card 側の指定を参照） */
+.anken-tag.ga-type { color: #fff; }
+
+.ga-type.ga-type--mochikomi { background: #00695c; }
+.ga-type.ga-type--gyosha { background: #b0521c; }
+.ga-type.ga-type--other { background: #546e7a; }
+
+.anken-card.ga-type--mochikomi { border-left-color: #00695c; }
+.anken-card.ga-type--gyosha { border-left-color: #b0521c; }
+.anken-card.ga-type--other { border-left-color: #546e7a; }
+
+/* 上段のタグ列はカードの先頭に来るので、上の余白を詰める */
+.anken-card__tags.ga-card-top { margin-top: 0; }
+
+/* 時間当たり売上 */
+.ga-card-hourly {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #eef4fb;
+  border-radius: var(--radius-sm);
+}
+
+.ga-card-hourly__value {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: #123a63;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===============================
+   内訳（集計）
+   =============================== */
+.ga-breakdown {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-md);
+}
+
+.ga-breakdown__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ga-breakdown__title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.ga-breakdown__metric {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: #6b7280;
+}
+
+.ga-breakdown__metric select {
+  padding: 6px 8px;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
+}
+
+.ga-breakdown__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ga-breakdown__tab {
+  min-height: 34px;
+  padding: 4px 12px;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
+  color: #344054;
+  cursor: pointer;
+}
+
+.ga-breakdown__tab:hover { background: #eef2f7; }
+
+.ga-breakdown__tab.is-on {
+  background: #123a63;
+  border-color: #123a63;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 名前セルの背景に、選んだ指標の大きさを帯で敷く */
+.ga-breakdown__name {
+  position: relative;
+  isolation: isolate;
+}
+
+.ga-breakdown__bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: -1;
+  background: #dbeafe;
+}
+
+.ga-breakdown__text { position: relative; }
+
+.ga-breakdown__table .is-negative { color: #c62828; }
+
+.ga-breakdown__more {
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+
+.ga-breakdown__more:hover { background: #f6f7f9; }
+
+/* 行クリックで下の明細を絞り込む。
+   選択中は強調し、それ以外は薄くして対象を分かりやすくする。
+   （:nth-child(even) と詳細度が並ぶため、行クラスを重ねて確実に勝たせる） */
+.anken-table tbody tr.ga-breakdown__row { cursor: pointer; }
+
+.anken-table tbody tr.ga-breakdown__row.is-on { background: #e3f0ff; }
+.anken-table tbody tr.ga-breakdown__row.is-on .ga-breakdown__text {
+  font-weight: 700;
+  color: #0b3d6b;
+}
+
+.anken-table tbody tr.ga-breakdown__row.is-dim { opacity: 0.45; }
+
+.ga-breakdown__row:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: -2px;
+}
+
+/* 明細を掘り下げ中であることの表示 */
+.ga-drill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding: 10px 14px;
+  background: #e3f0ff;
+  border-left: 5px solid #1976d2;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
+  color: #0b3d6b;
+}
+
+.ga-drill__text { min-width: 0; }
+
+/* ===============================
+   一覧まわり
+   =============================== */
+.ga-list-info {
+  margin-top: 18px;
+  font-size: var(--fs-sm);
+  color: #6b7280;
+}
+
+.ga-empty {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: #fff8e1;
+  border-left: 5px solid #f0ad4e;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
+  color: #5c4b1f;
+}
+
+/* 条件が足りず、まだ一覧を出していない状態の案内 */
+.ga-gate {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: #f0f4f8;
+  border-left: 5px solid #1976d2;
+  border-radius: var(--radius-md);
+  color: #274156;
+}
+
+.ga-gate__title {
+  margin: 0 0 8px;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.ga-gate__list {
+  margin: 0;
+  padding-left: 1.25em;
+  font-size: var(--fs-base);
+  line-height: 1.9;
+}
+
+.ga-gate__note {
+  margin: 10px 0 0;
+  font-size: var(--fs-sm);
+  color: #6b7280;
+}
+
+/* ===============================
+   タブレット以下
+   =============================== */
 @media (max-width: 768px) {
-  .under-construction {
-    padding: 1rem;
-    margin-top: 1rem;
-    font-size: var(--fs-base);
-    line-height: 1.7;
+  .ga-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 14px;
+  }
+
+  .ga-summary__stats { gap: 8px 16px; }
+
+  .ga-filters { padding: 12px 14px; }
+
+  .ga-breakdown { padding: 12px 14px; }
+
+  /* 内訳は7列しかないので、一覧表ほど幅を要求しない */
+  .anken-table.ga-breakdown__table { min-width: 560px; }
+}
+
+@media (max-width: 480px) {
+  .ga-summary__count { font-size: var(--fs-xl); }
+
+  .ga-summary__stats > div { flex: 1 1 40%; }
+
+  .ga-filters__title { font-size: var(--fs-base); }
+
+  /* 支店は数が多いので、狭い画面では高さを抑えてスクロールさせる */
+  .ga-facet__chips {
+    max-height: 168px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
