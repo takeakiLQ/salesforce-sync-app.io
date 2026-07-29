@@ -1,6 +1,6 @@
 // D:\React\salesforce_sync\src\App.js
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import HomePage from './components/HomePage';
@@ -11,6 +11,7 @@ import GeneralAnalysisPage from './components/GeneralAnalysisPage'; // 案件分
 import SubcontractorAnalysisPage from './components/SubcontractorAnalysisPage'; // サブコントラクター分析
 import Withdrawn from './components/Withdrawn';//離脱パートナー検索
 import RequireAuth from './components/RequireAuth';
+import { watchForAppUpdate } from './utils/appUpdate';
 
 // ログインが必要なページ。未ログインで直接URLを開くとログイン画面へ戻す。
 const PROTECTED_ROUTES = [
@@ -22,6 +23,10 @@ const PROTECTED_ROUTES = [
 ];
 
 function App() {
+  // ホーム画面に追加した状態だと index.html がキャッシュされたままになり、
+  // デプロイしても古い画面が出続けるため、起動時と復帰時に確認する
+  useEffect(() => watchForAppUpdate(), []);
+
   return (
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
       <Router>

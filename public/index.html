@@ -5,6 +5,17 @@
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0366d6" />
+
+    <!--
+      ホーム画面に追加した状態（standalone）だと、この index.html がキャッシュされたまま
+      残り、デプロイしても古い画面が出続けることがある。
+      JS/CSS はファイル名にハッシュが付くので、古くなりうるのはこのファイルだけ。
+      GitHub Pages ではレスポンスヘッダを設定できないため、まずここで抑止する。
+      （これを無視する webview もあるため、src/utils/appUpdate.js で二重に対策している）
+    -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta
       name="description"
       content="Salesforceのパートナー情報・案件情報を検索する社内アプリ"
