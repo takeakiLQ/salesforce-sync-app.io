@@ -22,6 +22,7 @@ import Pagination from "./Pagination";
 import ScrollTopButton from "./ScrollTopButton";
 import PullToRefresh from "./PullToRefresh";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
+import { syncSheetCaches } from "../utils/updatedAtApi";
 import useMediaQuery from "../utils/useMediaQuery";
 import useDebouncedSave from "../utils/useDebouncedSave";
 import { groupLabel, groupRank } from "../utils/groupOptions";
@@ -1295,7 +1296,13 @@ const GeneralAnalysisPage = () => {
       </div>
 
       <ScrollTopButton />
-      <PullToRefresh onRefresh={() => loadData({ force: true, silent: true })} />
+      {/* 先に「更新日時」だけを読み、シートが書き換わっていなければ取り直さない */}
+      <PullToRefresh
+        onRefresh={async () => {
+          await syncSheetCaches();
+          await loadData({ silent: true });
+        }}
+      />
     </div>
   );
 };

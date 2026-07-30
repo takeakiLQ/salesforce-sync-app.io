@@ -14,6 +14,7 @@ import ConfirmLink from "./ConfirmLink";
 import { fetchPrefectureCityMap, buildCityCandidates, sanitizeCitySelection } from "../utils/locationOptions";
 import { addSearchHistory } from "../utils/searchHistoryApi";
 import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
+import { syncSheetCaches } from "../utils/updatedAtApi";
 import useDebouncedSave from "../utils/useDebouncedSave";
 
 const RANGE_PARTNER = "パートナー情報!A1:ZZ";
@@ -759,7 +760,13 @@ const AvailabilityPage = () => {
 
       <div className="availability-page">
         <ScrollTopButton />
-        <PullToRefresh onRefresh={() => loadData({ force: true })} />
+        {/* 先に「更新日時」だけを読み、シートが書き換わっていなければ取り直さない */}
+        <PullToRefresh
+          onRefresh={async () => {
+            await syncSheetCaches();
+            await loadData();
+          }}
+        />
 
         {authExpired && <SessionExpiredNotice onRetry={() => loadData({ force: true })} />}
 

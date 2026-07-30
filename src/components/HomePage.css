@@ -82,34 +82,13 @@
   font-size: var(--fs-sm);
   margin: 0;
 }
-.data-update-notice {
-  margin: 2rem 1rem 1rem;
-  padding: 1rem 1.25rem;
-  background-color: #e9f0fb;
-  border-left: 5px solid #2b7bb9;
-  border-radius: var(--radius-md);
-  font-size: var(--fs-base);
-  color: #2c3e50;
-  line-height: 1.7;
-  box-shadow: inset 0 0 3px rgba(43, 123, 185, 0.15);
-}
-.data-update-notice strong {
-  color: #1a5276;
-  font-weight: 700;
-}
+/* データ更新状況の案内は DataFreshness.css へ移動した */
 
 /* ===============================
    タブレット
    =============================== */
 @media (max-width: 768px) {
   .home-page { padding: 8px 12px 20px; }
-
-  .data-update-notice {
-    margin: 1rem 0;
-    padding: 0.85rem 1rem;
-    font-size: var(--fs-sm);
-    line-height: 1.6;
-  }
 
   .card-container { padding: 1rem; }
   .card-title { font-size: var(--fs-md); }
@@ -123,12 +102,6 @@
    =============================== */
 @media (max-width: 480px) {
   .home-page { padding: 6px 8px 16px; }
-
-  .data-update-notice {
-    padding: 0.75rem 0.85rem;
-    font-size: var(--fs-sm);
-    border-left-width: 4px;
-  }
 
   .card-container {
     padding: 0.85rem;
