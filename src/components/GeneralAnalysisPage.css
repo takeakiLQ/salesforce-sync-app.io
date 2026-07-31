@@ -147,6 +147,15 @@
   gap: 6px;
 }
 
+/* 管理担当者のように選択肢が数十個ある facet。
+   全部並べると絞り込み欄だけで画面が埋まるため、高さを止めてスクロールさせる */
+.ga-facet--scroll .ga-facet__chips {
+  max-height: 216px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+
 /* チップ本体。指で押せるよう高さを確保する */
 .ga-chip {
   display: inline-flex;
@@ -211,6 +220,9 @@
 
 /* 上段のタグ列はカードの先頭に来るので、上の余白を詰める */
 .anken-card__tags.ga-card-top { margin-top: 0; }
+
+/* パートナー名のすぐ下に続くので、間を詰めて1つのまとまりに見せる */
+.anken-card__project.ga-card-admin { margin-top: 6px; }
 
 /* 時間当たり売上 */
 .ga-card-hourly {

@@ -8,11 +8,10 @@
 // どちらかを入れてもらってから初めて表示する（KEYWORD_MIN_LENGTH 付近を参照）。
 // 全件が黙って画面に出るのを避けるため。
 //
-// 管理担当者による絞り込みは、この時点では入れていない。
-// 稼働中案件シートに担当者の列が無く、パートナー情報シートの
-// AdministratorName__r.Name を Partner__r.ID_18__c ⇔ SF_ID__c で
-// 結合する必要があるため（＝「案件の担当者」ではなく
-// 「パートナーの管理担当者」になる）、意味を確認してから追加する。
+// 管理担当者（AH列 Administrator__r.Name）は案件レコード自身が持つ担当者。
+// 以前はこの列が無く、パートナー情報シートの AdministratorName__r.Name を
+// 結合するしかなかった（＝「パートナーの管理担当者」になってしまう）ため
+// 見送っていたが、シート側の SOQL に追加されたので絞り込み・列・内訳に入れた。
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HeaderMenu from "./HeaderMenu";
@@ -29,8 +28,8 @@ import { groupLabel, groupRank } from "../utils/groupOptions";
 import "./AnalysisPage.css";
 import "./GeneralAnalysisPage.css";
 
-// この画面で使うのは A〜AE 列（Id 〜 RecordType.Name）だけで、
-// AF 以降の空列21本・曜日×時間の稼働フラグ168本・初回配車の履歴は使わない。
+// この画面で使うのは A〜AE 列（Id 〜 RecordType.Name）と AH 列（管理担当者）で、
+// AI 以降の空列・曜日×時間の稼働フラグ168本・初回配車の履歴は使わない。
 // それでも A1:ZZ のままにしているのは、空車情報検索・協力会社分析と
 // 範囲の文字列を揃えるため。sheetsApi のキャッシュは範囲ごとに持つので、
 // ここだけ狭めると通信もパース済みの配列も二重に抱えることになる。
@@ -49,6 +48,9 @@ const KEYWORD_MIN_LENGTH = 2;
 
 /** 列が空の行をまとめる見出し。絞り込みから漏れて件数が合わなくなるのを防ぐ */
 const UNSET = "(未設定)";
+
+/** 案件の管理担当者（AH列）。同じ担当者の AF/AG はリレーション展開の付随列なので触らない */
+const ADMIN_KEY = "Administrator__r.Name";
 
 /** Salesforce の「無期限」を表す番人値。稼働終了日がこれなら継続中 */
 const OPEN_ENDED_DATE = "3999-12-31";
@@ -184,6 +186,7 @@ const BREAKDOWN_DIMENSIONS = [
   { key: "Partner_Keiyaku_type_temp__c", label: "PT区分" },
   { key: "Group_FY22__c", label: "主管", format: groupLabel },
   { key: "Branch__c", label: "支店" },
+  { key: ADMIN_KEY, label: "管理担当者" },
   { key: "PrefecturesFree__c", label: "都道府県" },
   { key: "CityFree__c", label: "市区町村" },
 ];
@@ -203,6 +206,8 @@ const BREAKDOWN_LIMIT = 20;
 const HEADERS = [
   { label: "主管", key: "Group_FY22__c", type: "group", w: "col-s" },
   { label: "支店", key: "Branch__c", type: "text", w: "col-s" },
+  // 主管・支店と同じ「どこの誰が持っている案件か」の並びなので、案件名の手前に置く
+  { label: "管理担当者", key: ADMIN_KEY, type: "text", w: "col-s" },
   { label: "案件名", key: "Name", type: "text", w: "col-l", wrap: true },
   { label: "パートナー", key: "Partner__r.Name", type: "text", w: "col-m", wrap: true },
   { label: "契約区分", key: "Partner_Keiyaku_type_temp__c", type: "text", w: "col-s" },
@@ -298,8 +303,10 @@ const FacetGroup = ({
   onClear,
   renderLabel,
   lockedMessage,
+  // 選択肢が数十個ある facet 向け。高さを抑えてスクロールさせる
+  scrollable,
 }) => (
-  <div className="ga-facet">
+  <div className={`ga-facet${scrollable ? " ga-facet--scroll" : ""}`}>
     <div className="ga-facet__head">
       <span className="ga-facet__title">
         {title}
@@ -358,6 +365,7 @@ const GeneralAnalysisPage = () => {
   const cached = useMemo(loadCachedFilters, []);
   const [selectedGroups, setSelectedGroups] = useState(() => toArray(cached.selectedGroups));
   const [selectedBranches, setSelectedBranches] = useState(() => toArray(cached.selectedBranches));
+  const [selectedAdmins, setSelectedAdmins] = useState(() => toArray(cached.selectedAdmins));
   const [projectKeyword, setProjectKeyword] = useState(() =>
     typeof cached.projectKeyword === "string" ? cached.projectKeyword : ""
   );
@@ -389,6 +397,7 @@ const GeneralAnalysisPage = () => {
   useDebouncedSave(FILTER_CACHE_KEY, {
     selectedGroups,
     selectedBranches,
+    selectedAdmins,
     projectKeyword,
     partnerKeyword,
     breakdownKey,
@@ -436,13 +445,15 @@ const GeneralAnalysisPage = () => {
         !selectedGroups.length || selectedGroups.includes(cellValue(row, "Group_FY22__c")),
       branch: (row) =>
         !selectedBranches.length || selectedBranches.includes(cellValue(row, "Branch__c")),
+      admin: (row) =>
+        !selectedAdmins.length || selectedAdmins.includes(cellValue(row, ADMIN_KEY)),
       project: (row) =>
         !normalizedProject || normalizeText(row["Name"]).includes(normalizedProject),
       partner: (row) =>
         !normalizedPartner ||
         normalizeText(row["Partner__r.Name"]).includes(normalizedPartner),
     }),
-    [selectedGroups, selectedBranches, normalizedProject, normalizedPartner]
+    [selectedGroups, selectedBranches, selectedAdmins, normalizedProject, normalizedPartner]
   );
 
   /** except に渡した facet の条件だけ外して絞り込む */
@@ -457,9 +468,12 @@ const GeneralAnalysisPage = () => {
   // 案件名・パートナー名は、どちらか一方が規定文字数に達していればよい
   const longestKeyword = Math.max(normalizedProject.length, normalizedPartner.length);
 
-  /** 一覧を出してよい状態か（主管＋支店、またはキーワード） */
+  /** 一覧を出してよい状態か（主管＋支店、管理担当者、またはキーワード）。
+      管理担当者は1人選べば十分絞れるので、単独で条件として認める。
+      （認めないと、担当者を選んでも一覧が出ない不可解な状態になる） */
   const isSearchReady =
     longestKeyword >= KEYWORD_MIN_LENGTH ||
+    selectedAdmins.length > 0 ||
     (selectedGroups.length > 0 && selectedBranches.length > 0);
 
   /** 条件が足りないとき、何が足りないかを1行で返す */
@@ -513,6 +527,12 @@ const GeneralAnalysisPage = () => {
     [buildOptions, rowsExcept, selectedBranches]
   );
 
+  // 人数が多いので、件数順ではなく名前順にして自分の名前を探しやすくする
+  const adminOptions = useMemo(
+    () => buildOptions(rowsExcept("admin"), ADMIN_KEY, selectedAdmins, byName),
+    [buildOptions, rowsExcept, selectedAdmins]
+  );
+
   // 主管を変えたとき、その主管に存在しない支店の選択は落とす。
   // （残すと件数0のまま「該当なし」になり、原因が分かりにくい）
   useEffect(() => {
@@ -536,12 +556,14 @@ const GeneralAnalysisPage = () => {
   const hasAnyFilter =
     selectedGroups.length > 0 ||
     selectedBranches.length > 0 ||
+    selectedAdmins.length > 0 ||
     projectKeyword.length > 0 ||
     partnerKeyword.length > 0;
 
   const clearAllFilters = () => {
     setSelectedGroups([]);
     setSelectedBranches([]);
+    setSelectedAdmins([]);
     setProjectKeyword("");
     setPartnerKeyword("");
   };
@@ -554,6 +576,7 @@ const GeneralAnalysisPage = () => {
     breakdownKey,
     selectedGroups,
     selectedBranches,
+    selectedAdmins,
     normalizedProject,
     normalizedPartner,
   ]);
@@ -694,7 +717,14 @@ const GeneralAnalysisPage = () => {
   // 条件が変われば先頭ページへ戻す
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedGroups, selectedBranches, normalizedProject, normalizedPartner, drill]);
+  }, [
+    selectedGroups,
+    selectedBranches,
+    selectedAdmins,
+    normalizedProject,
+    normalizedPartner,
+    drill,
+  ]);
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, totalPages));
@@ -824,6 +854,14 @@ const GeneralAnalysisPage = () => {
                   selectedGroups.length ? "" : "先に主管を選んでください。"
                 }
               />
+              <FacetGroup
+                title="管理担当者"
+                options={adminOptions}
+                selected={selectedAdmins}
+                onToggle={toggleValue(setSelectedAdmins)}
+                onClear={() => setSelectedAdmins([])}
+                scrollable
+              />
               <div className="detail-search">
                 <label className="detail-search__label">
                   案件名で絞り込み
@@ -864,8 +902,8 @@ const GeneralAnalysisPage = () => {
 
               <p className="ga-filters__note">
                 案件名かパートナー名が{KEYWORD_MIN_LENGTH}
-                文字以上になると、主管・支店を選ばなくても一覧が出ます。
-                両方入れた場合は、その両方に当てはまる案件だけを表示します。
+                文字以上になるか、管理担当者を選ぶと、主管・支店を選ばなくても一覧が出ます。
+                案件名とパートナー名を両方入れた場合は、その両方に当てはまる案件だけを表示します。
               </p>
             </div>
 
@@ -875,11 +913,14 @@ const GeneralAnalysisPage = () => {
             {!isSearchReady ? (
               <div className="ga-gate">
                 <p className="ga-gate__title">
-                  案件を表示するには、次のどちらかを指定してください
+                  案件を表示するには、次のいずれかを指定してください
                 </p>
                 <ul className="ga-gate__list">
                   <li>
                     <strong>主管</strong>と<strong>支店</strong>を両方選ぶ
+                  </li>
+                  <li>
+                    または<strong>管理担当者</strong>を選ぶ
                   </li>
                   <li>
                     または<strong>案件名</strong>か<strong>パートナー名</strong>
@@ -1191,6 +1232,13 @@ const GeneralAnalysisPage = () => {
                         <div className="anken-card__project">
                           <span className="anken-card__label">パートナー</span>
                           {renderCell({ key: "Partner__r.Name" }, row)}
+                        </div>
+
+                        {/* 「誰に聞けばよいか」はパートナー名の直後で見たいので、
+                            上段のタグ列ではなくここに置く */}
+                        <div className="anken-card__project ga-card-admin">
+                          <span className="anken-card__label">管理担当者</span>
+                          {row[ADMIN_KEY] || UNSET}
                         </div>
 
                         <div className="anken-card__money">
