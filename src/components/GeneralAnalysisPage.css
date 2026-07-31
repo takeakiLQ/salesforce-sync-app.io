@@ -100,6 +100,58 @@
 
 .ga-facet + .ga-facet { margin-top: 14px; }
 
+/* ===============================
+   詳細条件（畳んでおく部分）
+   =============================== */
+.ga-more {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.ga-more__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
+  color: #344054;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ga-more__toggle:hover { background: #eef2f7; }
+
+.ga-more__arrow {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: #6b7280;
+}
+
+.ga-more__title {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+/* 畳んでいる間、何が効いているかを見せる行。長ければ末尾を省略する */
+.ga-more__summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  color: #6b7280;
+}
+
+.ga-more.is-open .ga-more__toggle { background: #eef2f7; }
+
+.ga-more__body { margin-top: 12px; }
+
 /* 入力欄の下に置く、条件の効き方の説明 */
 .ga-filters__note {
   margin: 0;
@@ -135,10 +187,80 @@
   text-align: center;
 }
 
+/* 「すべて選択」と「クリア」。指で押し分けられるよう間隔を空ける */
+.ga-facet__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .ga-facet__empty {
   margin: 0;
   font-size: var(--fs-sm);
   color: #6b7280;
+}
+
+/* 候補が多い facet の絞り込み欄 */
+.ga-facet__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ga-facet__search input {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
+}
+
+.ga-facet__search input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 4px rgba(74, 144, 226, 0.5);
+}
+
+.ga-facet__search-clear {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-md);
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.ga-facet__search-clear:hover { background: #f6f7f9; }
+
+/* 「表示中の件数 / 全体」 */
+.ga-facet__hint {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 選択中の値。候補一覧をスクロールしても見失わないよう上に出す */
+.ga-facet__selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.ga-chip__remove {
+  font-size: var(--fs-md);
+  line-height: 1;
+  opacity: 0.85;
 }
 
 .ga-facet__chips {

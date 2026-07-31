@@ -81,6 +81,9 @@ const toNumber = (value) => {
 const normalizeText = (value) =>
   (value ?? "").toString().normalize("NFKC").toLowerCase().trim();
 
+/** 候補名の照合用。姓名の間の空白を無視して「山田太郎」でも「山田 太郎」に当てる */
+const squashText = (value) => normalizeText(value).replace(/\s+/g, "");
+
 const formatMoney = (value) => {
   const n = toNumber(value);
   return n ? n.toLocaleString() : "";
@@ -301,56 +304,137 @@ const FacetGroup = ({
   selected,
   onToggle,
   onClear,
+  onSelectAll,
   renderLabel,
   lockedMessage,
   // 選択肢が数十個ある facet 向け。高さを抑えてスクロールさせる
   scrollable,
-}) => (
-  <div className={`ga-facet${scrollable ? " ga-facet--scroll" : ""}`}>
-    <div className="ga-facet__head">
-      <span className="ga-facet__title">
-        {title}
-        {selected.length > 0 && (
-          <span className="ga-facet__badge">{selected.length}</span>
-        )}
-      </span>
-      <button
-        type="button"
-        className="clear-btn"
-        onClick={onClear}
-        disabled={!selected.length}
-      >
-        クリア
-      </button>
-    </div>
+  // 同じく数十個ある facet 向けの絞り込み欄。
+  // { value, onChange, placeholder, total } を渡すと、
+  // 入力欄と「選択中」の行（スクロールで見失わないため）を出す。
+  search,
+}) => {
+  // 「すべて選択」は今表示している選択肢に対して効く。
+  // 検索で絞っているときは、その結果だけが対象になる。
+  const allSelected =
+    options.length > 0 && options.every(({ value }) => selected.includes(value));
 
-    {lockedMessage ? (
-      <p className="ga-facet__empty">{lockedMessage}</p>
-    ) : options.length === 0 ? (
-      <p className="ga-facet__empty">該当する値がありません。</p>
-    ) : (
-      <div className="ga-facet__chips">
-        {options.map(({ value, count }) => {
-          const isOn = selected.includes(value);
-          return (
+  const renderChip = ({ value, count }) => {
+    const isOn = selected.includes(value);
+    return (
+      <button
+        key={value}
+        type="button"
+        className={`ga-chip${isOn ? " is-on" : ""}${count === 0 ? " is-empty" : ""}`}
+        onClick={() => onToggle(value)}
+        aria-pressed={isOn}
+      >
+        <span className="ga-chip__label">
+          {renderLabel ? renderLabel(value) : value}
+        </span>
+        <span className="ga-chip__count">{count}</span>
+      </button>
+    );
+  };
+
+  return (
+    <div className={`ga-facet${scrollable ? " ga-facet--scroll" : ""}`}>
+      <div className="ga-facet__head">
+        <span className="ga-facet__title">
+          {title}
+          {selected.length > 0 && (
+            <span className="ga-facet__badge">{selected.length}</span>
+          )}
+        </span>
+        <span className="ga-facet__actions">
+          {onSelectAll && (
+            <button
+              type="button"
+              className="clear-btn"
+              onClick={onSelectAll}
+              disabled={Boolean(lockedMessage) || allSelected}
+              title={
+                search?.value
+                  ? "絞り込んだ結果をすべて選びます"
+                  : "表示中の選択肢をすべて選びます"
+              }
+            >
+              すべて選択
+            </button>
+          )}
+          <button
+            type="button"
+            className="clear-btn"
+            onClick={onClear}
+            disabled={!selected.length}
+          >
+            クリア
+          </button>
+        </span>
+      </div>
+
+      {/* 選択中の値。一覧をスクロールしても、何を選んだかは常に見えるようにする */}
+      {search && selected.length > 0 && (
+        <div className="ga-facet__selected">
+          {selected.map((value) => (
             <button
               key={value}
               type="button"
-              className={`ga-chip${isOn ? " is-on" : ""}${count === 0 ? " is-empty" : ""}`}
+              className="ga-chip is-on"
               onClick={() => onToggle(value)}
-              aria-pressed={isOn}
+              aria-label={`${value} を解除`}
+              title="クリックで解除"
             >
               <span className="ga-chip__label">
                 {renderLabel ? renderLabel(value) : value}
               </span>
-              <span className="ga-chip__count">{count}</span>
+              <span className="ga-chip__remove" aria-hidden="true">
+                ×
+              </span>
             </button>
-          );
-        })}
-      </div>
-    )}
-  </div>
-);
+          ))}
+        </div>
+      )}
+
+      {search && (
+        <div className="ga-facet__search">
+          <input
+            type="text"
+            value={search.value}
+            onChange={(e) => search.onChange(e.target.value)}
+            placeholder={search.placeholder}
+            aria-label={`${title}を名前で絞り込み`}
+          />
+          {search.value && (
+            <button
+              type="button"
+              className="ga-facet__search-clear"
+              onClick={() => search.onChange("")}
+              aria-label="入力を消す"
+            >
+              ×
+            </button>
+          )}
+          <span className="ga-facet__hint">
+            {options.length}/{search.total}
+          </span>
+        </div>
+      )}
+
+      {lockedMessage ? (
+        <p className="ga-facet__empty">{lockedMessage}</p>
+      ) : options.length === 0 ? (
+        <p className="ga-facet__empty">
+          {search?.value
+            ? `「${search.value}」に一致する候補がありません。`
+            : "該当する値がありません。"}
+        </p>
+      ) : (
+        <div className="ga-facet__chips">{options.map(renderChip)}</div>
+      )}
+    </div>
+  );
+};
 
 const GeneralAnalysisPage = () => {
   const [allRows, setAllRows] = useState([]);
@@ -372,6 +456,18 @@ const GeneralAnalysisPage = () => {
   const [partnerKeyword, setPartnerKeyword] = useState(() =>
     typeof cached.partnerKeyword === "string" ? cached.partnerKeyword : ""
   );
+  // 管理担当者チップの絞り込み欄。何で絞ったかは条件ではないので保存しない。
+  const [adminKeyword, setAdminKeyword] = useState("");
+
+  // 詳細条件（管理担当者・案件名・パートナー名）の開閉。
+  // 前回の条件が残っているときは、隠れたまま効いているのを避けて開いた状態で始める。
+  const [showDetail, setShowDetail] = useState(
+    () =>
+      toArray(cached.selectedAdmins).length > 0 ||
+      Boolean(cached.projectKeyword) ||
+      Boolean(cached.partnerKeyword)
+  );
+
   // 並び順は保存しない。開くたびに「指定なし」（＝シートの並び）から始める。
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [currentPage, setCurrentPage] = useState(1);
@@ -533,6 +629,14 @@ const GeneralAnalysisPage = () => {
     [buildOptions, rowsExcept, selectedAdmins]
   );
 
+  // 数十人が一度に並ぶと選べないので、入力した文字を含む人だけに絞る。
+  // 選択中の人が消えても「選択中」の行に残るため、解除できなくなることはない。
+  const visibleAdminOptions = useMemo(() => {
+    const keyword = squashText(adminKeyword);
+    if (!keyword) return adminOptions;
+    return adminOptions.filter(({ value }) => squashText(value).includes(keyword));
+  }, [adminOptions, adminKeyword]);
+
   // 主管を変えたとき、その主管に存在しない支店の選択は落とす。
   // （残すと件数0のまま「該当なし」になり、原因が分かりにくい）
   useEffect(() => {
@@ -553,12 +657,24 @@ const GeneralAnalysisPage = () => {
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
     );
 
+  /** 表示中の選択肢をまとめて選ぶ。検索や他の条件で今は見えていない選択は残す */
+  const selectAll = (setter, options) => () =>
+    setter((prev) => Array.from(new Set([...prev, ...options.map((o) => o.value)])));
+
   const hasAnyFilter =
     selectedGroups.length > 0 ||
     selectedBranches.length > 0 ||
     selectedAdmins.length > 0 ||
     projectKeyword.length > 0 ||
     partnerKeyword.length > 0;
+
+  // 畳んだときに「何が効いているか」を見せるための一行。
+  // 隠れたまま条件が効いている状態が一番分かりにくいので、閉じていても必ず出す。
+  const detailConditions = [
+    selectedAdmins.length ? `管理担当者 ${selectedAdmins.length}人` : "",
+    projectKeyword ? `案件名「${projectKeyword}」` : "",
+    partnerKeyword ? `パートナー名「${partnerKeyword}」` : "",
+  ].filter(Boolean);
 
   const clearAllFilters = () => {
     setSelectedGroups([]);
@@ -841,6 +957,7 @@ const GeneralAnalysisPage = () => {
                 selected={selectedGroups}
                 onToggle={toggleValue(setSelectedGroups)}
                 onClear={() => setSelectedGroups([])}
+                onSelectAll={selectAll(setSelectedGroups, groupOptions)}
                 renderLabel={groupLabel}
               />
               <FacetGroup
@@ -849,62 +966,100 @@ const GeneralAnalysisPage = () => {
                 selected={selectedBranches}
                 onToggle={toggleValue(setSelectedBranches)}
                 onClear={() => setSelectedBranches([])}
+                onSelectAll={selectAll(setSelectedBranches, branchOptions)}
                 // 主管を選ぶ前は全支店が並んで選びにくいため、順序を固定する
                 lockedMessage={
                   selectedGroups.length ? "" : "先に主管を選んでください。"
                 }
               />
-              <FacetGroup
-                title="管理担当者"
-                options={adminOptions}
-                selected={selectedAdmins}
-                onToggle={toggleValue(setSelectedAdmins)}
-                onClear={() => setSelectedAdmins([])}
-                scrollable
-              />
-              <div className="detail-search">
-                <label className="detail-search__label">
-                  案件名で絞り込み
-                  <input
-                    type="text"
-                    value={projectKeyword}
-                    onChange={(e) => setProjectKeyword(e.target.value)}
-                    placeholder="例: 光合金"
-                  />
-                </label>
+
+              {/* 主管・支店だけで足りることが多いので、残りは畳んでおく。
+                  条件が入っているときは、閉じていても見出しの下に出す。 */}
+              <div className={`ga-more${showDetail ? " is-open" : ""}`}>
                 <button
                   type="button"
-                  className="detail-search__clear"
-                  onClick={() => setProjectKeyword("")}
-                  disabled={!projectKeyword}
+                  className="ga-more__toggle"
+                  onClick={() => setShowDetail((open) => !open)}
+                  aria-expanded={showDetail}
                 >
-                  クリア
+                  <span className="ga-more__arrow" aria-hidden="true">
+                    {showDetail ? "▼" : "▶"}
+                  </span>
+                  <span className="ga-more__title">詳細条件</span>
+                  {detailConditions.length > 0 && (
+                    <span className="ga-facet__badge">{detailConditions.length}</span>
+                  )}
+                  <span className="ga-more__summary">
+                    {detailConditions.length
+                      ? detailConditions.join(" / ")
+                      : "管理担当者・案件名・パートナー名"}
+                  </span>
                 </button>
 
-                <label className="detail-search__label">
-                  パートナー名で絞り込み
-                  <input
-                    type="text"
-                    value={partnerKeyword}
-                    onChange={(e) => setPartnerKeyword(e.target.value)}
-                    placeholder="例: 小柳"
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="detail-search__clear"
-                  onClick={() => setPartnerKeyword("")}
-                  disabled={!partnerKeyword}
-                >
-                  クリア
-                </button>
+                {showDetail && (
+                  <div className="ga-more__body">
+                    <FacetGroup
+                      title="管理担当者"
+                      options={visibleAdminOptions}
+                      selected={selectedAdmins}
+                      onToggle={toggleValue(setSelectedAdmins)}
+                      onClear={() => setSelectedAdmins([])}
+                      onSelectAll={selectAll(setSelectedAdmins, visibleAdminOptions)}
+                      scrollable
+                      search={{
+                        value: adminKeyword,
+                        onChange: setAdminKeyword,
+                        placeholder: "名前の一部で絞り込み（例: 山田）",
+                        total: adminOptions.length,
+                      }}
+                    />
+
+                    <div className="detail-search">
+                      <label className="detail-search__label">
+                        案件名で絞り込み
+                        <input
+                          type="text"
+                          value={projectKeyword}
+                          onChange={(e) => setProjectKeyword(e.target.value)}
+                          placeholder="例: 光合金"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="detail-search__clear"
+                        onClick={() => setProjectKeyword("")}
+                        disabled={!projectKeyword}
+                      >
+                        クリア
+                      </button>
+
+                      <label className="detail-search__label">
+                        パートナー名で絞り込み
+                        <input
+                          type="text"
+                          value={partnerKeyword}
+                          onChange={(e) => setPartnerKeyword(e.target.value)}
+                          placeholder="例: 小柳"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="detail-search__clear"
+                        onClick={() => setPartnerKeyword("")}
+                        disabled={!partnerKeyword}
+                      >
+                        クリア
+                      </button>
+                    </div>
+
+                    <p className="ga-filters__note">
+                      案件名かパートナー名が{KEYWORD_MIN_LENGTH}
+                      文字以上になるか、管理担当者を選ぶと、主管・支店を選ばなくても一覧が出ます。
+                      案件名とパートナー名を両方入れた場合は、その両方に当てはまる案件だけを表示します。
+                    </p>
+                  </div>
+                )}
               </div>
-
-              <p className="ga-filters__note">
-                案件名かパートナー名が{KEYWORD_MIN_LENGTH}
-                文字以上になるか、管理担当者を選ぶと、主管・支店を選ばなくても一覧が出ます。
-                案件名とパートナー名を両方入れた場合は、その両方に当てはまる案件だけを表示します。
-              </p>
             </div>
 
             {/* 一覧 */}
