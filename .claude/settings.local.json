@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell($env:CI=\"true\"; npm run build 2>&1 | Select-Object -Last 12)",
-      "PowerShell($env:CI=\"true\"; npm run build 2>&1 | Select-String -Pattern \"Compiled|Failed|warning|error\" | Select-Object -First 10)"
-    ]
-  }
-}

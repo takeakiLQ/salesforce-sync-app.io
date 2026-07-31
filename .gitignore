@@ -27,6 +27,9 @@ yarn-error.log*
 # VSCode 設定
 .vscode/
 
+# Claude Code のローカル設定（実行環境ごとに違うのでコミットしない）
+.claude/settings.local.json
+
 # Windows 系
 Thumbs.db
 ehthumbs.db
