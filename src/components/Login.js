@@ -14,6 +14,10 @@ import './Login.css';
 const NOTICES = [
   {
     date: '2026年10月1日',
+    body: '案件分析ページに、曜日×時間帯で稼働中の案件数を見られる「時間帯」表示を追加しました。一覧の上の切り替えから表示できます。',
+  },
+  {
+    date: '2026年10月1日',
     body: '案件分析ページで、絞り込んだ案件一覧と内訳をExcelに出力できるようになりました。一覧の上の「Excelに出力」ボタンから保存できます。',
   },
   {
@@ -105,7 +109,7 @@ const Login = () => {
       <section className="login-notice" aria-label="お知らせ">
         <span className="login-notice__label">お知らせ</span>
         {NOTICES.map((notice) => (
-          <div key={notice.date} className="login-notice__item">
+          <div key={notice.body} className="login-notice__item">
             <span className="login-notice__date">{notice.date}</span>
             <p className="login-notice__body">{notice.body}</p>
           </div>
