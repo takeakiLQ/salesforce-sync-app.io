@@ -10,7 +10,7 @@
 //   rows: [[値, ...], ...],    値は 数値 / 文字列 / Date / null / { text, hyperlink }
 //   totalRow: [値, ...],       省略可。最終行に太字で足す
 //   table: false,              false なら見出しの固定とフィルタを付けない（出力条件など）
-//   colorScale: true,          1行目・1列目を除いた範囲を、値が大きいほど濃い青に塗る
+//   colorScale: true,          1行目・1列目を除いた範囲を、値が大きいほど濃く塗る
 // }]
 
 const HEADER_FILL = {
@@ -68,7 +68,7 @@ const addSheet = (workbook, { name, columns, rows, totalRow, table = true, color
     });
   }
 
-  // 画面のヒートマップと同じく、多いほど濃い青。0 は白
+  // 画面のヒートマップ（WorkHeatmap の COLOR_STOPS）と同じ、薄いティール → 濃い紺
   if (colorScale && rows.length && columns.length > 1) {
     const last = sheet.getRow(1 + rows.length).getCell(columns.length).address;
     sheet.addConditionalFormatting({
@@ -76,8 +76,8 @@ const addSheet = (workbook, { name, columns, rows, totalRow, table = true, color
       rules: [
         {
           type: "colorScale",
-          cfvo: [{ type: "num", value: 0 }, { type: "max" }],
-          color: [{ argb: "FFFFFFFF" }, { argb: "FF0366D6" }],
+          cfvo: [{ type: "num", value: 0 }, { type: "percent", value: 50 }, { type: "max" }],
+          color: [{ argb: "FFD3EBEA" }, { argb: "FF1B8A8C" }, { argb: "FF0B3142" }],
         },
       ],
     });

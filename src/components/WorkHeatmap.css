@@ -1,16 +1,12 @@
-/* 曜日×時間帯のヒートマップ（WorkHeatmap.js） */
+/* 曜日×時間帯のヒートマップ（WorkHeatmap.js）
+   色は WorkHeatmap.js の COLOR_STOPS と揃える（凡例の帯もここで同じ3色を使う） */
 
 .wh {
   margin-top: 12px;
-}
-
-.wh__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-bottom: 10px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-sm);
 }
 
 .wh__metric {
@@ -18,92 +14,147 @@
   gap: 6px;
 }
 
-.wh__peaks {
-  margin: 0;
+.wh__stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 28px;
+  margin-top: 14px;
   font-size: var(--fs-sm);
+  color: #4b5563;
+}
+
+.wh__stat strong {
+  font-size: 30px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* マウスを乗せたマスの内容。出し入れで表が上下に動かないよう高さを確保しておく */
+.wh__focus {
+  min-height: 1.6em;
+  margin: 10px 0 8px;
+  font-size: var(--fs-base);
   color: #374151;
 }
 
-.wh__peak {
-  padding: 0;
-  background: none;
-  border: none;
-  color: #1d4ed8;
-  font: inherit;
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
+.wh__focus-hint {
+  font-size: var(--fs-sm);
+  color: #9ca3af;
 }
 
 .wh__scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid #e5e7eb;
-  border-radius: var(--radius-sm);
-  background: #fff;
 }
 
 .wh__table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 2px;
   table-layout: fixed;
   font-size: var(--fs-sm);
 }
 
-/* 横向き（PC）：見出し列＋24列。狭いときは横スクロールで逃がす */
+/* 横向き（PC）：曜日＋24列＋延べ時間。狭いときは横スクロールで逃がす */
 .wh__table:not(.is-transposed) {
-  min-width: 760px;
+  min-width: 860px;
 }
 
 .wh__table th {
-  padding: 4px 2px;
-  background: #f6f7f9;
-  color: #4b5563;
+  padding: 2px;
+  color: #6b7280;
   font-weight: 600;
   text-align: center;
   white-space: nowrap;
 }
 
-.wh__table thead th:first-child,
-.wh__table tbody th {
-  width: 44px;
+.wh__table thead th {
+  font-size: var(--fs-xs);
+  font-weight: 500;
 }
 
-.wh__corner {
+.wh__table tbody th {
+  color: #111827;
+  font-size: var(--fs-base);
+}
+
+.wh__table thead th:first-child,
+.wh__table tbody th {
+  width: 36px;
+}
+
+.wh__table .wh__total-head {
+  width: 72px;
+  text-align: right;
   font-size: var(--fs-xs);
 }
 
+.wh__total {
+  padding: 0 4px;
+  color: #374151;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .wh-cell {
-  padding: 1px;
-  border: 1px solid #f0f2f5;
+  padding: 0;
 }
 
 .wh-cell__btn {
   display: block;
   width: 100%;
-  min-height: 30px;
+  min-height: 34px;
   padding: 0;
-  background: #fff;
+  background: #e5e7eb;
   border: 2px solid transparent;
   border-radius: 3px;
-  color: #0b2545;
+  color: #0b3142;
   font: inherit;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
+.wh-cell__btn.is-zero,
 .wh-cell__btn:disabled {
   cursor: default;
 }
 
-.wh-cell__btn:not(:disabled):hover {
+.wh-cell__btn:not(:disabled):hover,
+.wh-cell__btn:not(:disabled):focus-visible {
   border-color: #f59e0b;
+  outline: none;
 }
 
-/* 選んでいるマス。濃い青の上でも見えるよう、色を変えた太枠にする */
+/* 選んでいるマス。濃い色の上でも見えるよう、色を変えた太枠にする */
 .wh-cell__btn.is-on {
   border-color: #f59e0b;
   box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.wh__legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: var(--fs-sm);
+  color: #6b7280;
+}
+
+.wh__legend-bar {
+  width: 180px;
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #d3ebea, #1b8a8c, #0b3142);
+}
+
+.wh__legend-note {
+  color: #9ca3af;
 }
 
 .wh__note {
@@ -114,7 +165,20 @@
 }
 
 @media (max-width: 768px) {
+  .wh {
+    padding: 12px;
+  }
+
+  .wh__stat strong {
+    font-size: 22px;
+  }
+
   .wh-cell__btn {
     min-height: 28px;
+  }
+
+  .wh__table .wh__total-head,
+  .wh__table tbody th {
+    width: 40px;
   }
 }

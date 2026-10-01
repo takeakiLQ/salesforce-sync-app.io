@@ -168,8 +168,9 @@ const workDayIndexes = (row) =>
     .filter((index) => index >= 0);
 
 /**
- * 案件が稼働するマスの一覧。"曜日添字-時" の文字列で返す。
- * 開始〜終了に1分でも掛かる時間帯を数える（01:00〜05:30 なら 1〜5時台）。
+ * 案件が稼働するマス。"曜日添字-時" → そのマスで稼働している時間（h）の Map で返す。
+ * 開始〜終了に1分でも掛かる時間帯を数える（01:00〜05:30 なら 1〜5時台、5時台は0.5h）。
+ * 時間は曜日ごとの延べ時間に使う。
  * 0時をまたぐ分は翌日の曜日に入れる（日曜の深夜は月曜へ回る）。
  * 曜日か時刻が欠けていて出せなければ null。
  */
@@ -181,10 +182,13 @@ const workSlots = (row) => {
 
   const first = Math.floor(start);
   const last = Math.ceil(start + span) - 1;
-  const slots = new Set();
+  const end = start + span;
+  const slots = new Map();
   days.forEach((day) => {
     for (let hour = first; hour <= last; hour++) {
-      slots.add(`${(day + Math.floor(hour / 24)) % 7}-${hour % 24}`);
+      const key = `${(day + Math.floor(hour / 24)) % 7}-${hour % 24}`;
+      const covered = Math.min(end, hour + 1) - Math.max(start, hour);
+      slots.set(key, (slots.get(key) || 0) + covered);
     }
   });
   return slots;
@@ -192,13 +196,17 @@ const workSlots = (row) => {
 
 const slotKey = (day, hour) => `${day}-${hour}`;
 
-/** [曜日7][時24] の { count, partners }。excluded は時間帯を出せなかった案件数 */
+/**
+ * [曜日7][時24] の { count, partners, hours }。
+ * hours はそのマスの延べ稼働時間（案件ごとの稼働時間の合計）。
+ * excluded は時間帯を出せなかった案件数
+ */
 const buildHeatmap = (rows, slotsOf) => {
   const partnerSets = HEAT_DAYS.map(() =>
     Array.from({ length: 24 }, () => new Set())
   );
   const grid = HEAT_DAYS.map(() =>
-    Array.from({ length: 24 }, () => ({ count: 0, partners: 0 }))
+    Array.from({ length: 24 }, () => ({ count: 0, partners: 0, hours: 0 }))
   );
   let excluded = 0;
 
@@ -210,9 +218,10 @@ const buildHeatmap = (rows, slotsOf) => {
     }
     // パートナーIDが無い行は名前で代用する（同名の別会社は区別できないが、数えないよりよい）
     const partner = row["Partner__r.ID_18__c"] || row["Partner__r.Name"] || "";
-    slots.forEach((key) => {
+    slots.forEach((hours, key) => {
       const [day, hour] = key.split("-").map(Number);
       grid[day][hour].count += 1;
+      grid[day][hour].hours += hours;
       if (partner) partnerSets[day][hour].add(partner);
     });
   });
@@ -1769,6 +1778,7 @@ const GeneralAnalysisPage = () => {
                     selected={slot}
                     onSelect={selectSlot}
                     excluded={heatmap.excluded}
+                    total={drilledRows.length}
                     transpose={isNarrow}
                   />
                 ) : (
