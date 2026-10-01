@@ -56,6 +56,9 @@ const KEYWORD_MIN_LENGTH = 2;
 /** 列が空の行をまとめる見出し。絞り込みから漏れて件数が合わなくなるのを防ぐ */
 const UNSET = "(未設定)";
 
+/** パートナーの契約区分（持込・業者・雇用・支援） */
+const CONTRACT_KEY = "Partner_Keiyaku_type_temp__c";
+
 /** 案件の管理担当者（AH列）。同じ担当者の AF/AG はリレーション展開の付随列なので触らない */
 const ADMIN_KEY = "Administrator__r.Name";
 
@@ -762,6 +765,9 @@ const GeneralAnalysisPage = () => {
   const [selectedGroups, setSelectedGroups] = useState(() => toArray(cached.selectedGroups));
   const [selectedBranches, setSelectedBranches] = useState(() => toArray(cached.selectedBranches));
   const [selectedAdmins, setSelectedAdmins] = useState(() => toArray(cached.selectedAdmins));
+  const [selectedContracts, setSelectedContracts] = useState(() =>
+    toArray(cached.selectedContracts)
+  );
   const [projectKeyword, setProjectKeyword] = useState(() =>
     typeof cached.projectKeyword === "string" ? cached.projectKeyword : ""
   );
@@ -812,6 +818,7 @@ const GeneralAnalysisPage = () => {
     selectedGroups,
     selectedBranches,
     selectedAdmins,
+    selectedContracts,
     projectKeyword,
     partnerKeyword,
     breakdownKey,
@@ -861,13 +868,23 @@ const GeneralAnalysisPage = () => {
         !selectedBranches.length || selectedBranches.includes(cellValue(row, "Branch__c")),
       admin: (row) =>
         !selectedAdmins.length || selectedAdmins.includes(cellValue(row, ADMIN_KEY)),
+      contract: (row) =>
+        !selectedContracts.length ||
+        selectedContracts.includes(cellValue(row, CONTRACT_KEY)),
       project: (row) =>
         !normalizedProject || normalizeText(row["Name"]).includes(normalizedProject),
       partner: (row) =>
         !normalizedPartner ||
         normalizeText(row["Partner__r.Name"]).includes(normalizedPartner),
     }),
-    [selectedGroups, selectedBranches, selectedAdmins, normalizedProject, normalizedPartner]
+    [
+      selectedGroups,
+      selectedBranches,
+      selectedAdmins,
+      selectedContracts,
+      normalizedProject,
+      normalizedPartner,
+    ]
   );
 
   /** except に渡した facet の条件だけ外して絞り込む */
@@ -941,6 +958,18 @@ const GeneralAnalysisPage = () => {
     [buildOptions, rowsExcept, selectedBranches]
   );
 
+  // 持込・業者・雇用・支援の4つ程度なので、件数の多い順に並べる
+  const contractOptions = useMemo(
+    () =>
+      buildOptions(
+        rowsExcept("contract"),
+        CONTRACT_KEY,
+        selectedContracts,
+        (a, b) => b.count - a.count || byName(a, b)
+      ),
+    [buildOptions, rowsExcept, selectedContracts]
+  );
+
   // 人数が多いので、件数順ではなく名前順にして自分の名前を探しやすくする
   const adminOptions = useMemo(
     () => buildOptions(rowsExcept("admin"), ADMIN_KEY, selectedAdmins, byName),
@@ -983,6 +1012,7 @@ const GeneralAnalysisPage = () => {
     selectedGroups.length > 0 ||
     selectedBranches.length > 0 ||
     selectedAdmins.length > 0 ||
+    selectedContracts.length > 0 ||
     projectKeyword.length > 0 ||
     partnerKeyword.length > 0;
 
@@ -998,6 +1028,7 @@ const GeneralAnalysisPage = () => {
     setSelectedGroups([]);
     setSelectedBranches([]);
     setSelectedAdmins([]);
+    setSelectedContracts([]);
     setProjectKeyword("");
     setPartnerKeyword("");
   };
@@ -1011,6 +1042,7 @@ const GeneralAnalysisPage = () => {
     selectedGroups,
     selectedBranches,
     selectedAdmins,
+    selectedContracts,
     normalizedProject,
     normalizedPartner,
   ]);
@@ -1065,6 +1097,7 @@ const GeneralAnalysisPage = () => {
     selectedGroups,
     selectedBranches,
     selectedAdmins,
+    selectedContracts,
     normalizedProject,
     normalizedPartner,
   ]);
@@ -1169,6 +1202,7 @@ const GeneralAnalysisPage = () => {
     selectedGroups,
     selectedBranches,
     selectedAdmins,
+    selectedContracts,
     normalizedProject,
     normalizedPartner,
     drill,
@@ -1221,6 +1255,7 @@ const GeneralAnalysisPage = () => {
       ["データ更新日時", formatDateTime(cachedRowsUpdatedAt(RANGE_ASSIGN))],
       ["主管", joinOr(selectedGroups, groupLabel)],
       ["支店", joinOr(selectedBranches)],
+      ["契約区分", joinOr(selectedContracts)],
       ["管理担当者", joinOr(selectedAdmins)],
       ["案件名", projectKeyword || "指定なし"],
       ["パートナー名", partnerKeyword || "指定なし"],
@@ -1414,6 +1449,14 @@ const GeneralAnalysisPage = () => {
                 lockedMessage={
                   selectedGroups.length ? "" : "先に主管を選んでください。"
                 }
+              />
+              <FacetGroup
+                title="契約区分"
+                options={contractOptions}
+                selected={selectedContracts}
+                onToggle={toggleValue(setSelectedContracts)}
+                onClear={() => setSelectedContracts([])}
+                onSelectAll={selectAll(setSelectedContracts, contractOptions)}
               />
 
               {/* 主管・支店だけで足りることが多いので、残りは畳んでおく。
