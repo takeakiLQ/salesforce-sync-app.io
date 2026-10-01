@@ -546,6 +546,22 @@ const breakdownSheet = (dimension, rows, metric) => {
   };
 };
 
+/** 時間帯シート。行が曜日、列が0〜23時。metric は "count" | "partners" */
+const heatmapSheet = (grid, metric, label) => ({
+  name: `時間帯_${label}`,
+  table: false,
+  colorScale: true,
+  columns: [
+    { header: "曜日", width: 6 },
+    ...Array.from({ length: 24 }, (_, hour) => ({
+      header: `${hour}時`,
+      width: 5,
+      numFmt: MONEY,
+    })),
+  ],
+  rows: grid.map((hours, day) => [HEAT_DAYS[day], ...hours.map((cell) => cell[metric])]),
+});
+
 /** 並び替え用の比較キー。列の型ごとに数値／日時／文字列へ寄せる */
 const sortValue = (row, header) => {
   const raw = row[header.key] ?? "";
@@ -1207,6 +1223,7 @@ const GeneralAnalysisPage = () => {
             }`
           : "なし",
       ],
+      ["時間帯での絞り込み", slot ? slotText : "なし"],
       [
         "並び順",
         sortHeader
@@ -1218,6 +1235,14 @@ const GeneralAnalysisPage = () => {
         "内訳シート",
         `${filteredRows.length.toLocaleString()}件を集計（内訳からの絞り込みは含めない）。` +
           `${metricLabel}の大きい順で、構成比も${metricLabel}の比率`,
+      ],
+      [
+        "時間帯シート",
+        `${drilledRows.length.toLocaleString()}件をもとに、各時間帯に稼働している案件数・パートナー数` +
+          "（時間帯での絞り込みは含めない）。0時をまたぐ分は翌日の曜日に数え、祝日は含まない。" +
+          (heatmap.excluded
+            ? `曜日・稼働時刻が登録されていないか祝日のみの${heatmap.excluded.toLocaleString()}件は数えていない`
+            : ""),
       ],
     ];
   };
@@ -1241,6 +1266,9 @@ const GeneralAnalysisPage = () => {
           ...BREAKDOWN_DIMENSIONS.map((dimension) =>
             breakdownSheet(dimension, filteredRows, breakdownMetric)
           ),
+          // 画面のヒートマップと同じく、時間帯の絞り込みは効かせない
+          heatmapSheet(heatmap.grid, "count", "案件数"),
+          heatmapSheet(heatmap.grid, "partners", "パートナー数"),
           {
             name: "出力条件",
             table: false,
