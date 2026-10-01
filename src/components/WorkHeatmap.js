@@ -6,9 +6,9 @@
 //
 // props:
 //   blocks        : [{ key, title, desc, palette, grid, total, cats }]
-//                   grid は [曜日7][時24] の { count, partners, hours }。
+//                   grid は [曜日7][時24] の { count, partners, hours, rate, rateWeighted, rateHours }。
 //                   まとめて表示なら1つ、区分ごとに表示なら区分の数だけ
-//   metric        : "count" | "partners"
+//   metric        : "count" | "partners" | "rate"（平均時給）
 //   onMetricChange
 //   categoryCounts: { am, span, pm } 区分ごとの案件数
 //   selectedCats  : 含める区分のキー配列
@@ -60,7 +60,13 @@ export const HEAT_CATEGORIES = [
 const METRICS = [
   { key: "count", label: "案件数", unit: "件" },
   { key: "partners", label: "パートナー数", unit: "パートナー" },
+  { key: "rate", label: "平均時給", unit: "円" },
 ];
+
+// 平均時給は1〜2件で値が決まるマスがあるので、そうしたマスは数字を薄くして目印にする
+const THIN_COUNT = 2;
+
+const yen = (value) => `¥${Math.round(value).toLocaleString()}`;
 
 const rgb = (color) => `rgb(${color.join(",")})`;
 
@@ -71,9 +77,8 @@ const mix = (stops, ratio) => {
   return from.map((value, i) => Math.round(value + (to[i] - value) * t));
 };
 
-const cellStyle = (stops, value, max) => {
-  if (!value || !max) return undefined;
-  const ratio = value / max;
+/** ratio は 0〜1。値が無いマスには呼ばない（灰色のまま） */
+const cellStyle = (stops, ratio) => {
   return {
     backgroundColor: rgb(mix(stops, ratio)),
     color: ratio > 0.45 ? "#fff" : rgb(stops[2]),
@@ -105,13 +110,17 @@ const HeatmapBlock = ({
   const { unit } = METRICS.find((m) => m.key === metric) || METRICS[0];
   const valueOf = (day, hour) => grid[day][hour][metric];
 
+  const isRate = metric === "rate";
+
   // 最大値とピーク。同じ値のマスが複数あれば、曜日・時刻の早いものを代表にする
   let max = 0;
+  let min = Infinity;
   let peak = null;
   let peakTies = 0;
   HEAT_DAYS.forEach((_, day) =>
     HOURS.forEach((hour) => {
       const value = valueOf(day, hour);
+      if (value > 0 && value < min) min = value;
       if (value > max) {
         max = value;
         peak = { day, hour };
@@ -121,6 +130,25 @@ const HeatmapBlock = ({
       }
     })
   );
+  if (!Number.isFinite(min)) min = 0;
+
+  // 件数は 0〜最大、平均時給はこの表示内の最安〜最高を濃淡に対応させる
+  // （時給は0円が無いので、0起点だと全マスが濃い側に寄って差が見えない）
+  const ratioOf = (value) => {
+    if (!isRate) return max ? value / max : 0;
+    return max > min ? (value - min) / (max - min) : 1;
+  };
+
+  // 稼働時間で重み付けした平均時給（長く稼働する案件ほど効く）
+  let weighted = 0;
+  let weightHours = 0;
+  grid.forEach((hours) =>
+    hours.forEach((cell) => {
+      weighted += cell.rateWeighted;
+      weightHours += cell.rateHours;
+    })
+  );
+  const averageRate = weightHours ? weighted / weightHours : 0;
 
   const dayHours = grid.map((hours) => hours.reduce((sum, cell) => sum + cell.hours, 0));
 
@@ -130,23 +158,29 @@ const HeatmapBlock = ({
   const renderCell = (day, hour) => {
     const value = valueOf(day, hour);
     const isOn = selected && selected.day === day && selected.hour === hour;
-    const { count, partners } = grid[day][hour];
+    const { count, partners, rate } = grid[day][hour];
+    const isThin = isRate && value > 0 && count <= THIN_COUNT;
     return (
       <td key={`${day}-${hour}`} className="wh-cell">
         <button
           type="button"
-          className={`wh-cell__btn${isOn ? " is-on" : ""}${value ? "" : " is-zero"}`}
-          style={cellStyle(stops, value, max)}
+          className={`wh-cell__btn${isOn ? " is-on" : ""}${value ? "" : " is-zero"}${
+            isThin ? " is-thin" : ""
+          }`}
+          style={value > 0 ? cellStyle(stops, ratioOf(value)) : undefined}
           onClick={() => onSelect(day, hour, cats)}
           onMouseEnter={() => setHovered({ day, hour })}
           onMouseLeave={() => setHovered(null)}
           onFocus={() => setHovered({ day, hour })}
           onBlur={() => setHovered(null)}
           disabled={!count}
-          aria-label={`${slotRange(day, hour)} 稼働 ${count}件、パートナー ${partners}`}
+          aria-label={`${slotRange(day, hour)} 稼働 ${count}件、パートナー ${partners}${
+            rate ? `、平均時給 ${yen(rate)}` : ""
+          }`}
           aria-pressed={isOn}
         >
-          {value || ""}
+          {/* 時給は4〜5桁でマスに入らないので千円単位にする（凡例に明記） */}
+          {value > 0 ? (isRate ? (value / 1000).toFixed(1) : value) : ""}
         </button>
       </td>
     );
@@ -170,17 +204,36 @@ const HeatmapBlock = ({
         <span className="wh__stat">
           <strong>{total.toLocaleString()}</strong> 件の案件
         </span>
-        <span className="wh__stat">
-          <strong>{max.toLocaleString()}</strong> {unit}が最大同時稼働
-        </span>
-        {peak && (
-          <span className="wh__stat">
-            <strong>
-              {HEAT_DAYS[peak.day]} {peak.hour}:00
-            </strong>{" "}
-            がピーク
-            {peakTies > 1 && `（同数ほか${peakTies - 1}枠）`}
-          </span>
+        {isRate ? (
+          <>
+            <span className="wh__stat">
+              <strong>{averageRate ? yen(averageRate) : "-"}</strong>{" "}
+              が稼働時間で重み付けした平均時給
+            </span>
+            {peak && (
+              <span className="wh__stat">
+                <strong>
+                  {HEAT_DAYS[peak.day]} {peak.hour}:00
+                </strong>{" "}
+                が最高（{yen(max)}）
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="wh__stat">
+              <strong>{max.toLocaleString()}</strong> {unit}が最大同時稼働
+            </span>
+            {peak && (
+              <span className="wh__stat">
+                <strong>
+                  {HEAT_DAYS[peak.day]} {peak.hour}:00
+                </strong>{" "}
+                がピーク
+                {peakTies > 1 && `（同数ほか${peakTies - 1}枠）`}
+              </span>
+            )}
+          </>
         )}
       </div>
 
@@ -190,6 +243,7 @@ const HeatmapBlock = ({
             <strong>{slotRange(focus.day, focus.hour)}</strong>　稼働{" "}
             {focusCell.count.toLocaleString()}件（パートナー{" "}
             {focusCell.partners.toLocaleString()}）
+            {focusCell.rate > 0 && <>・平均時給 {yen(focusCell.rate)}</>}
           </>
         ) : (
           <span className="wh__focus-hint">
@@ -243,17 +297,18 @@ const HeatmapBlock = ({
       </div>
 
       <div className="wh__legend">
-        <span>0</span>
+        <span>{isRate ? yen(min) : 0}</span>
         <span
           className="wh__legend-bar"
           aria-hidden="true"
           style={{ background: `linear-gradient(to right, ${stops.map(rgb).join(", ")})` }}
         />
-        <span>
-          {max.toLocaleString()} {unit}
-        </span>
+        <span>{isRate ? yen(max) : `${max.toLocaleString()} ${unit}`}</span>
         <span className="wh__legend-note">
-          （{title ? "この区分" : "表示中データ"}の最大値を最も濃い色にしています）
+          {isRate
+            ? `（マス内は千円単位。${title ? "この区分" : "この表示"}の最安〜最高を濃淡に対応。` +
+              `${THIN_COUNT}件以下のマスは数字を薄くしています）`
+            : `（${title ? "この区分" : "表示中データ"}の最大値を最も濃い色にしています）`}
         </span>
       </div>
     </section>
@@ -360,6 +415,8 @@ const WorkHeatmap = ({
         マスの数字はその時間帯に稼働している{metricLabel}、延べ時間は曜日ごとの稼働時間の合計です。
         0時をまたぐ案件は翌日の曜日に数え、祝日は含みません。
         時間帯区分は正午で分け、夜に始まり0時をまたぐ案件は「午後のみ」に含めます。
+        {metric === "rate" &&
+          " 平均時給は、そのマスで稼働している案件の「売上/時」（一覧の列と同じ）の単純平均です。売上/時を出せない案件は含めません。件数が少ないマスは1〜2件で値が決まるので、件数も確認してください。"}
         {excluded > 0 &&
           ` 曜日・稼働時刻が登録されていないか、祝日のみの案件 ${excluded.toLocaleString()}件は数えていません。`}
       </p>

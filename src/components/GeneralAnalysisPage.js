@@ -225,7 +225,17 @@ const buildHeatmap = (rows, slotsOf) => {
     Array.from({ length: 24 }, () => new Set())
   );
   const grid = HEAT_DAYS.map(() =>
-    Array.from({ length: 24 }, () => ({ count: 0, partners: 0, hours: 0 }))
+    Array.from({ length: 24 }, () => ({
+      count: 0,
+      partners: 0,
+      hours: 0,
+      // 平均時給の材料。売上/時を出せる案件だけで数える
+      rate: 0,
+      rateSum: 0,
+      rateCount: 0,
+      rateWeighted: 0,
+      rateHours: 0,
+    }))
   );
   let excluded = 0;
 
@@ -237,17 +247,29 @@ const buildHeatmap = (rows, slotsOf) => {
     }
     // パートナーIDが無い行は名前で代用する（同名の別会社は区別できないが、数えないよりよい）
     const partner = row["Partner__r.ID_18__c"] || row["Partner__r.Name"] || "";
+    // 一覧の「売上/時」列と同じ値。売上やコマが無く出せない案件は平均に入れない
+    const rate = salesPerHour(row);
+    const hasRate = Number.isFinite(rate) && rate > 0;
     slots.forEach((hours, key) => {
       const [day, hour] = key.split("-").map(Number);
-      grid[day][hour].count += 1;
-      grid[day][hour].hours += hours;
+      const cell = grid[day][hour];
+      cell.count += 1;
+      cell.hours += hours;
       if (partner) partnerSets[day][hour].add(partner);
+      if (hasRate) {
+        cell.rateSum += rate;
+        cell.rateCount += 1;
+        cell.rateWeighted += rate * hours;
+        cell.rateHours += hours;
+      }
     });
   });
 
   grid.forEach((hours, day) =>
     hours.forEach((cell, hour) => {
       cell.partners = partnerSets[day][hour].size;
+      // マスの平均時給は、そのマスで稼働している案件の売上/時の単純平均
+      cell.rate = cell.rateCount ? cell.rateSum / cell.rateCount : 0;
     })
   );
   return { grid, excluded };
@@ -578,7 +600,8 @@ const breakdownSheet = (dimension, rows, metric) => {
 const heatmapSheet = (grid, metric, label) => ({
   name: `時間帯_${label}`,
   table: false,
-  colorScale: true,
+  // 平均時給は0円が無いので、最安〜最高を濃淡にする（画面と同じ）
+  colorScale: metric === "rate" ? "minmax" : true,
   columns: [
     { header: "曜日", width: 6 },
     ...Array.from({ length: 24 }, (_, hour) => ({
@@ -587,7 +610,13 @@ const heatmapSheet = (grid, metric, label) => ({
       numFmt: MONEY,
     })),
   ],
-  rows: grid.map((hours, day) => [HEAT_DAYS[day], ...hours.map((cell) => cell[metric])]),
+  rows: grid.map((hours, day) => [
+    HEAT_DAYS[day],
+    // 平均時給は円単位に丸め、出せないマスは0ではなく空欄にする
+    ...hours.map((cell) =>
+      metric === "rate" ? (cell.rate ? Math.round(cell.rate) : null) : cell[metric]
+    ),
+  ]),
 });
 
 /** 並び替え用の比較キー。列の型ごとに数値／日時／文字列へ寄せる */
@@ -1367,7 +1396,7 @@ const GeneralAnalysisPage = () => {
       ],
       [
         "時間帯シート",
-        `${drilledRows.length.toLocaleString()}件をもとに、各時間帯に稼働している案件数・パートナー数` +
+        `${drilledRows.length.toLocaleString()}件をもとに、各時間帯に稼働している案件数・パートナー数・平均時給` +
           "（時間帯・時間帯区分での絞り込みは含めない）。0時をまたぐ分は翌日の曜日に数え、祝日は含まない。" +
           (heatmap.excluded
             ? `曜日・稼働時刻が登録されていないか祝日のみの${heatmap.excluded.toLocaleString()}件は数えていない`
@@ -1398,6 +1427,7 @@ const GeneralAnalysisPage = () => {
           // 画面のヒートマップと同じく、時間帯の絞り込みは効かせない
           heatmapSheet(heatmap.grid, "count", "案件数"),
           heatmapSheet(heatmap.grid, "partners", "パートナー数"),
+          heatmapSheet(heatmap.grid, "rate", "平均時給"),
           {
             name: "出力条件",
             table: false,

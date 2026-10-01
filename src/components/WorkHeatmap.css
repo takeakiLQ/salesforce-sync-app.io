@@ -240,6 +240,12 @@
   cursor: pointer;
 }
 
+/* 平均時給で件数が少ない（値が1〜2件で決まる）マス */
+.wh-cell__btn.is-thin {
+  font-style: italic;
+  opacity: 0.55;
+}
+
 .wh-cell__btn.is-zero,
 .wh-cell__btn:disabled {
   cursor: default;
