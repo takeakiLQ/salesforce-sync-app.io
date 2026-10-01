@@ -20,8 +20,14 @@ import ConfirmLink from "./ConfirmLink";
 import Pagination from "./Pagination";
 import ScrollTopButton from "./ScrollTopButton";
 import PullToRefresh from "./PullToRefresh";
-import { fetchSheetRows, isAuthError } from "../utils/sheetsApi";
-import { syncSheetCaches } from "../utils/updatedAtApi";
+import { cachedRowsUpdatedAt, fetchSheetRows, isAuthError } from "../utils/sheetsApi";
+import { formatDateTime, syncSheetCaches } from "../utils/updatedAtApi";
+import {
+  downloadWorkbook,
+  timestampedFileName,
+  toExcelDate,
+  toExcelTime,
+} from "../utils/excelExport";
 import useMediaQuery from "../utils/useMediaQuery";
 import useDebouncedSave from "../utils/useDebouncedSave";
 import { groupLabel, groupRank } from "../utils/groupOptions";
@@ -257,6 +263,135 @@ const HEADERS = [
   },
   // カードでは出しているので、PCの表にも置いて項目を揃える
   { label: "配車申請コメント", key: "Haisyasinsei_komento__c", type: "text", w: "col-xl", wrap: true },
+];
+
+/* ===== Excel 出力の列定義 =====
+   画面の列（HEADERS）と同じ並びにしつつ、Excel で集計しやすい形に崩す。
+   ・金額や率は文字列ではなく数値で出す（SUM やピボットにそのまま使える）
+   ・画面で1セルに重ねている「月額＋日額」「拘束＋時刻」は別の列に分ける
+   ・稼働地は都道府県と市区町村に分ける（Excel 側で絞り込みやすい） */
+
+/** シートの金額やコマ数。空欄は 0 ではなく空セルにする */
+const numberOrNull = (value) => {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Salesforce のレコードへのリンク。ID が無ければ文字だけ */
+const linkCell = (text, id) => {
+  const url = sfLink(id);
+  return url && text ? { text, hyperlink: url } : text || "";
+};
+
+const MONEY = "#,##0";
+
+const EXPORT_COLUMNS = [
+  { header: "主管", width: 10, value: (row) => groupLabel(row["Group_FY22__c"]) },
+  { header: "支店", width: 12, value: (row) => row["Branch__c"] || "" },
+  { header: "管理担当者", width: 12, value: (row) => row[ADMIN_KEY] || "" },
+  {
+    header: "案件名",
+    width: 40,
+    wrap: true,
+    value: (row) => linkCell(row["Name"], row["Id"]),
+  },
+  {
+    header: "パートナー",
+    width: 26,
+    wrap: true,
+    value: (row) => linkCell(row["Partner__r.Name"], row["Partner__r.ID_18__c"]),
+  },
+  { header: "契約区分", width: 9, value: (row) => row["Partner_Keiyaku_type_temp__c"] || "" },
+  { header: "都道府県", width: 10, value: (row) => row["PrefecturesFree__c"] || "" },
+  { header: "市区町村", width: 14, value: (row) => row["CityFree__c"] || "" },
+  {
+    header: "稼働開始",
+    width: 11,
+    numFmt: "yyyy-mm-dd",
+    value: (row) => toExcelDate(row["OperationStartDate__c"]),
+  },
+  {
+    // 無期限（3999-12-31）は画面と同じく「継続中」と書く
+    header: "稼働終了",
+    width: 11,
+    numFmt: "yyyy-mm-dd",
+    value: (row) => {
+      const raw = row["OperationEndDate__c"] || "";
+      return raw.startsWith(OPEN_ENDED_DATE) ? "継続中" : toExcelDate(raw);
+    },
+  },
+  { header: "曜日", width: 12, value: (row) => formatWorkingDays(row["WorkingDay__c"]) },
+  {
+    header: "コマ",
+    width: 7,
+    numFmt: MONEY,
+    value: (row) => numberOrNull(row["KADO_YOTEI_NISSUU_AUTO__c"]),
+  },
+  {
+    header: "開始時刻",
+    width: 8,
+    numFmt: "h:mm",
+    value: (row) => toExcelTime(parseHours(row["OperationStartTime__c"])),
+  },
+  {
+    header: "終了時刻",
+    width: 8,
+    numFmt: "h:mm",
+    value: (row) => toExcelTime(parseHours(row["OperationEndTime__c"])),
+  },
+  { header: "拘束(h)", width: 8, numFmt: "0.00", value: workHours },
+  {
+    header: "売上/月",
+    width: 12,
+    numFmt: MONEY,
+    value: (row) => numberOrNull(row["Scheduled_sales_calculation__c"]),
+  },
+  {
+    header: "原価/月",
+    width: 12,
+    numFmt: MONEY,
+    value: (row) => numberOrNull(row["Yotei_Genka_keisan__c"]),
+  },
+  {
+    header: "粗利/月",
+    width: 12,
+    numFmt: MONEY,
+    value: (row) => numberOrNull(row["Yotei_Arari_Keisan__c"]),
+  },
+  {
+    header: "粗利率",
+    width: 8,
+    numFmt: "0.0%",
+    value: (row) => grossMarginPct(row) / 100,
+  },
+  {
+    header: "売上/日",
+    width: 10,
+    numFmt: MONEY,
+    value: (row) => perDay(row, "Scheduled_sales_calculation__c"),
+  },
+  {
+    header: "原価/日",
+    width: 10,
+    numFmt: MONEY,
+    value: (row) => perDay(row, "Yotei_Genka_keisan__c"),
+  },
+  {
+    header: "粗利/日",
+    width: 10,
+    numFmt: MONEY,
+    value: (row) => perDay(row, "Yotei_Arari_Keisan__c"),
+  },
+  { header: "売上/時", width: 10, numFmt: MONEY, value: salesPerHour },
+  {
+    header: "配車申請コメント",
+    width: 60,
+    wrap: true,
+    value: (row) => row["Haisyasinsei_komento__c"] || "",
+  },
+  // 別の表と突き合わせるときの鍵
+  { header: "案件ID", width: 20, value: (row) => row["Id"] || "" },
 ];
 
 /** 並び替え用の比較キー。列の型ごとに数値／日時／文字列へ寄せる */
@@ -854,6 +989,91 @@ const GeneralAnalysisPage = () => {
   const startIndex = sortedRows.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0;
   const endIndex = Math.min(currentPage * PAGE_SIZE, sortedRows.length);
 
+  /* ===== Excel 出力 =====
+     表示中の1ページではなく、今の条件に当てはまる全件を画面と同じ並びで出す。
+     ファイルだけ渡されても条件が分かるよう、出力条件を別シートに書く。 */
+  const [exporting, setExporting] = useState(false);
+
+  /** ログイン時に控えた Google アカウント。「山田 太郎（taro@example.com）」 */
+  const exportedBy = () => {
+    try {
+      const name = localStorage.getItem("userName");
+      const email = localStorage.getItem("userEmail");
+      return [name, email && `（${email}）`].filter(Boolean).join("");
+    } catch (e) {
+      return "";
+    }
+  };
+
+  const describeConditions = (now) => {
+    const joinOr = (values, format = (v) => v) =>
+      values.length ? values.map((v) => format(v) || v).join("、") : "指定なし";
+    const sortHeader = HEADERS.find((h) => h.key === sortConfig.key);
+    const drillDimension = drill
+      ? BREAKDOWN_DIMENSIONS.find((d) => d.key === drill.dimension)
+      : null;
+
+    return [
+      ["出力日時", formatDateTime(now)],
+      ["出力者", exportedBy() || "不明"],
+      // 画面に出ているデータが、シートのいつの更新分か。分からなければそう書く
+      ["データ更新日時", formatDateTime(cachedRowsUpdatedAt(RANGE_ASSIGN))],
+      ["主管", joinOr(selectedGroups, groupLabel)],
+      ["支店", joinOr(selectedBranches)],
+      ["管理担当者", joinOr(selectedAdmins)],
+      ["案件名", projectKeyword || "指定なし"],
+      ["パートナー名", partnerKeyword || "指定なし"],
+      [
+        "内訳からの絞り込み",
+        drillDimension
+          ? `${drillDimension.label}：${
+              (drillDimension.format && drillDimension.format(drill.value)) || drill.value
+            }`
+          : "なし",
+      ],
+      [
+        "並び順",
+        sortHeader
+          ? `${sortHeader.label}（${sortConfig.direction === "asc" ? "昇順" : "降順"}）`
+          : "指定なし（シートの並び）",
+      ],
+      ["件数", sortedRows.length],
+    ];
+  };
+
+  const handleExport = async () => {
+    if (exporting || !sortedRows.length) return;
+    setExporting(true);
+    try {
+      const now = new Date();
+      await downloadWorkbook({
+        fileName: timestampedFileName("案件分析", now),
+        creator: exportedBy(),
+        sheets: [
+          {
+            name: "案件一覧",
+            columns: EXPORT_COLUMNS,
+            rows: sortedRows.map((row) => EXPORT_COLUMNS.map((c) => c.value(row))),
+          },
+          {
+            name: "出力条件",
+            table: false,
+            columns: [
+              { header: "項目", width: 18 },
+              { header: "内容", width: 60, wrap: true },
+            ],
+            rows: describeConditions(now),
+          },
+        ],
+      });
+    } catch (e) {
+      console.error("Excel出力に失敗しました", e);
+      window.alert("Excelの作成に失敗しました。時間をおいて再度お試しください。");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   /* ===== セルの描画 ===== */
   const renderCell = (header, row) => {
     switch (header.key) {
@@ -1294,7 +1514,19 @@ const GeneralAnalysisPage = () => {
                 )}
 
                 <div className="ga-list-info">
-                  {startIndex}–{endIndex} / {sortedRows.length.toLocaleString()} 件
+                  <span>
+                    {startIndex}–{endIndex} / {sortedRows.length.toLocaleString()} 件
+                  </span>
+                  <button
+                    type="button"
+                    className="ga-export-btn"
+                    onClick={handleExport}
+                    disabled={exporting || !sortedRows.length}
+                  >
+                    {exporting
+                      ? "作成中..."
+                      : `Excelに出力（${sortedRows.length.toLocaleString()}件）`}
+                  </button>
                 </div>
 
                 <Pagination

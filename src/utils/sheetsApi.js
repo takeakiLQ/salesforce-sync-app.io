@@ -226,3 +226,16 @@ export async function fetchSheetRows(
   }
   return rows;
 }
+
+/**
+ * 手元に持っている行データが、シートのいつの更新分か。
+ * 取得した時点で「更新日時」シートが読めていなければ分からないので null を返す。
+ * （「今のシートの更新日時」ではない。画面に出ているデータそのものの日時）
+ */
+export const cachedRowsUpdatedAt = (
+  range,
+  { normalizeKeys = false, spreadsheetId = DEFAULT_SPREADSHEET_ID } = {}
+) => {
+  const hit = rowsCache.get(`${spreadsheetId}!${range}!${normalizeKeys ? "norm" : "raw"}`);
+  return hit && hit.stamp ? new Date(hit.stamp) : null;
+};

@@ -504,9 +504,35 @@
    一覧まわり
    =============================== */
 .ga-list-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 18px;
   font-size: var(--fs-sm);
   color: #6b7280;
+}
+
+/* 一覧の全件（表示中のページだけではない）を .xlsx で保存する */
+.ga-export-btn {
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid #1d7044;
+  border-radius: var(--radius-sm);
+  color: #1d7044;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ga-export-btn:hover:not(:disabled) { background: #eef7f1; }
+
+.ga-export-btn:disabled {
+  border-color: #d0d5dd;
+  color: #9ca3af;
+  cursor: default;
 }
 
 .ga-empty {
