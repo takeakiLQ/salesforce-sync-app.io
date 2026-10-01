@@ -10,10 +10,17 @@ import { clearSheetCache } from '../utils/sheetsApi';
 import './Login.css';
 
 // ログイン画面に出すお知らせ。更新時はここだけ書き換える。
-const NOTICE = {
-  date: '2026年7月29日',
-  body: '案件分析ページを公開しました。稼働中の案件を主管・支店や案件名で絞り込み、件数や売上の内訳を確認できます。',
-};
+// 新しいものを先頭に足す。増えすぎたら古いものから消す。
+const NOTICES = [
+  {
+    date: '2026年10月1日',
+    body: '案件分析ページで、絞り込んだ案件一覧と内訳をExcelに出力できるようになりました。一覧の上の「Excelに出力」ボタンから保存できます。',
+  },
+  {
+    date: '2026年7月29日',
+    body: '案件分析ページを公開しました。稼働中の案件を主管・支店や案件名で絞り込み、件数や売上の内訳を確認できます。',
+  },
+];
 
 const Login = () => {
   const navigate = useNavigate();
@@ -97,8 +104,12 @@ const Login = () => {
 
       <section className="login-notice" aria-label="お知らせ">
         <span className="login-notice__label">お知らせ</span>
-        <span className="login-notice__date">{NOTICE.date}</span>
-        <p className="login-notice__body">{NOTICE.body}</p>
+        {NOTICES.map((notice) => (
+          <div key={notice.date} className="login-notice__item">
+            <span className="login-notice__date">{notice.date}</span>
+            <p className="login-notice__body">{notice.body}</p>
+          </div>
+        ))}
       </section>
 
       <button className="google-login-button" onClick={login}>

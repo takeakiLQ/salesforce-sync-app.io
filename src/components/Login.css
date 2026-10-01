@@ -84,13 +84,23 @@
   font-weight: 700;
 }
 
+.login-notice__item {
+  margin-top: 8px;
+}
+
+/* 2件目以降は区切り線で分ける */
+.login-notice__item + .login-notice__item {
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
+}
+
 .login-notice__date {
   font-size: var(--fs-xs);
   color: #6b7280;
 }
 
 .login-notice__body {
-  margin: 6px 0 0;
+  margin: 2px 0 0;
   color: #374151;
   font-size: var(--fs-sm);
   line-height: var(--lh-base);
