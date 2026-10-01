@@ -1,0 +1,120 @@
+/* 曜日×時間帯のヒートマップ（WorkHeatmap.js） */
+
+.wh {
+  margin-top: 12px;
+}
+
+.wh__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
+.wh__metric {
+  display: flex;
+  gap: 6px;
+}
+
+.wh__peaks {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: #374151;
+}
+
+.wh__peak {
+  padding: 0;
+  background: none;
+  border: none;
+  color: #1d4ed8;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.wh__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.wh__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--fs-sm);
+}
+
+/* 横向き（PC）：見出し列＋24列。狭いときは横スクロールで逃がす */
+.wh__table:not(.is-transposed) {
+  min-width: 760px;
+}
+
+.wh__table th {
+  padding: 4px 2px;
+  background: #f6f7f9;
+  color: #4b5563;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.wh__table thead th:first-child,
+.wh__table tbody th {
+  width: 44px;
+}
+
+.wh__corner {
+  font-size: var(--fs-xs);
+}
+
+.wh-cell {
+  padding: 1px;
+  border: 1px solid #f0f2f5;
+}
+
+.wh-cell__btn {
+  display: block;
+  width: 100%;
+  min-height: 30px;
+  padding: 0;
+  background: #fff;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  color: #0b2545;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.wh-cell__btn:disabled {
+  cursor: default;
+}
+
+.wh-cell__btn:not(:disabled):hover {
+  border-color: #f59e0b;
+}
+
+/* 選んでいるマス。濃い青の上でも見えるよう、色を変えた太枠にする */
+.wh-cell__btn.is-on {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.wh__note {
+  margin: 8px 0 0;
+  font-size: var(--fs-sm);
+  color: #6b7280;
+  line-height: var(--lh-base);
+}
+
+@media (max-width: 768px) {
+  .wh-cell__btn {
+    min-height: 28px;
+  }
+}

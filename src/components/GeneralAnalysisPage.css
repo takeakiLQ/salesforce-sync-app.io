@@ -514,6 +514,34 @@
   color: #6b7280;
 }
 
+/* 一覧／時間帯（ヒートマップ）の切り替え */
+.ga-view {
+  display: inline-flex;
+  margin-top: 18px;
+  padding: 3px;
+  background: #eef1f5;
+  border-radius: var(--radius-pill);
+}
+
+.ga-view__tab {
+  min-width: 96px;
+  min-height: 34px;
+  padding: 4px 16px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-pill);
+  color: #4b5563;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ga-view__tab.is-on {
+  background: #fff;
+  color: #0b3d6b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 /* 一覧の全件（表示中のページだけではない）を .xlsx で保存する */
 .ga-export-btn {
   padding: 8px 14px;

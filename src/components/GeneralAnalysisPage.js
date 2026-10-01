@@ -20,6 +20,7 @@ import ConfirmLink from "./ConfirmLink";
 import Pagination from "./Pagination";
 import ScrollTopButton from "./ScrollTopButton";
 import PullToRefresh from "./PullToRefresh";
+import WorkHeatmap, { HEAT_DAYS } from "./WorkHeatmap";
 import { cachedRowsUpdatedAt, fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 import { formatDateTime, syncSheetCaches } from "../utils/updatedAtApi";
 import {
@@ -151,6 +152,77 @@ const salesPerHour = (row) => {
   const hours = workHours(row);
   if (!Number.isFinite(daily) || !Number.isFinite(hours)) return NaN;
   return daily / hours;
+};
+
+/* ===== 時間帯（ヒートマップ） =====
+   案件がどの曜日・何時台に稼働しているか。曜日（WorkingDay__c）と
+   稼働開始・終了時刻から出す。一覧の「拘束」列と同じ根拠にしておく。
+   シートには曜日×時間の稼働フラグ列もあるが、範囲外の列（AI以降）を
+   この画面では読まない方針なので使っていない（RANGE_ASSIGN のコメント参照）。 */
+
+/** "月;火" → [0, 1]（HEAT_DAYS の添字）。祝日は行を設けないので落とす */
+const workDayIndexes = (row) =>
+  (row["WorkingDay__c"] || "")
+    .split(";")
+    .map((day) => HEAT_DAYS.indexOf(DAY_MAP[day.trim()] || day.trim()))
+    .filter((index) => index >= 0);
+
+/**
+ * 案件が稼働するマスの一覧。"曜日添字-時" の文字列で返す。
+ * 開始〜終了に1分でも掛かる時間帯を数える（01:00〜05:30 なら 1〜5時台）。
+ * 0時をまたぐ分は翌日の曜日に入れる（日曜の深夜は月曜へ回る）。
+ * 曜日か時刻が欠けていて出せなければ null。
+ */
+const workSlots = (row) => {
+  const start = parseHours(row["OperationStartTime__c"]);
+  const span = workHours(row);
+  const days = workDayIndexes(row);
+  if (!Number.isFinite(start) || !Number.isFinite(span) || !days.length) return null;
+
+  const first = Math.floor(start);
+  const last = Math.ceil(start + span) - 1;
+  const slots = new Set();
+  days.forEach((day) => {
+    for (let hour = first; hour <= last; hour++) {
+      slots.add(`${(day + Math.floor(hour / 24)) % 7}-${hour % 24}`);
+    }
+  });
+  return slots;
+};
+
+const slotKey = (day, hour) => `${day}-${hour}`;
+
+/** [曜日7][時24] の { count, partners }。excluded は時間帯を出せなかった案件数 */
+const buildHeatmap = (rows, slotsOf) => {
+  const partnerSets = HEAT_DAYS.map(() =>
+    Array.from({ length: 24 }, () => new Set())
+  );
+  const grid = HEAT_DAYS.map(() =>
+    Array.from({ length: 24 }, () => ({ count: 0, partners: 0 }))
+  );
+  let excluded = 0;
+
+  rows.forEach((row) => {
+    const slots = slotsOf(row);
+    if (!slots) {
+      excluded += 1;
+      return;
+    }
+    // パートナーIDが無い行は名前で代用する（同名の別会社は区別できないが、数えないよりよい）
+    const partner = row["Partner__r.ID_18__c"] || row["Partner__r.Name"] || "";
+    slots.forEach((key) => {
+      const [day, hour] = key.split("-").map(Number);
+      grid[day][hour].count += 1;
+      if (partner) partnerSets[day][hour].add(partner);
+    });
+  });
+
+  grid.forEach((hours, day) =>
+    hours.forEach((cell, hour) => {
+      cell.partners = partnerSets[day][hour].size;
+    })
+  );
+  return { grid, excluded };
 };
 
 /** 粗利率（%）= 粗利/月 ÷ 売上/月 */
@@ -705,6 +777,12 @@ const GeneralAnalysisPage = () => {
   // 内訳の集計自体はこれを無視し、下の明細と件数だけを絞る。
   const [drill, setDrill] = useState(null);
 
+  // 一覧の代わりに曜日×時間帯のヒートマップを出すか。開くたびに一覧から始める
+  const [listView, setListView] = useState("list");
+  const [heatMetric, setHeatMetric] = useState("count");
+  // ヒートマップのマスを押したときの絞り込み。{ day, hour }
+  const [slot, setSlot] = useState(null);
+
   useDebouncedSave(FILTER_CACHE_KEY, {
     selectedGroups,
     selectedBranches,
@@ -927,12 +1005,61 @@ const GeneralAnalysisPage = () => {
    * 内訳の集計そのものは filteredRows のままにして、
    * 掘り下げても他の行が消えないようにしている。
    */
-  const listRows = useMemo(() => {
+  const drilledRows = useMemo(() => {
     if (!drill) return filteredRows;
     return filteredRows.filter(
       (row) => cellValue(row, drill.dimension) === drill.value
     );
   }, [filteredRows, drill]);
+
+  // 行ごとの稼働マス。ヒートマップと時間帯の絞り込みで何度も引くので先に出しておく
+  const slotsByRow = useMemo(
+    () => new Map(filteredRows.map((row) => [row, workSlots(row)])),
+    [filteredRows]
+  );
+  const slotsOf = useCallback((row) => slotsByRow.get(row) ?? null, [slotsByRow]);
+
+  /**
+   * ヒートマップは内訳からの絞り込みまでを反映し、時間帯の絞り込みは無視する。
+   * （効かせると選んだマス以外が薄くなり、全体の中での位置が見えなくなる）
+   */
+  const heatmap = useMemo(() => buildHeatmap(drilledRows, slotsOf), [drilledRows, slotsOf]);
+
+  /** 明細と件数に使う行。ヒートマップのマスを選んでいれば、その時間帯に稼働する案件だけ */
+  const listRows = useMemo(() => {
+    if (!slot) return drilledRows;
+    const key = slotKey(slot.day, slot.hour);
+    return drilledRows.filter((row) => slotsOf(row)?.has(key));
+  }, [drilledRows, slot, slotsOf]);
+
+  // 絞り込みや内訳が変わったら、時間帯の選択は解除する（内訳からの絞り込みと同じ理由）
+  useEffect(() => {
+    setSlot(null);
+  }, [
+    drill,
+    selectedGroups,
+    selectedBranches,
+    selectedAdmins,
+    normalizedProject,
+    normalizedPartner,
+  ]);
+
+  // 更新でそのマスの案件が無くなったら解除する。残すと0件の画面から戻れなくなる
+  useEffect(() => {
+    if (slot && !listRows.length) setSlot(null);
+  }, [slot, listRows]);
+
+  /** マスを押したら、その時間帯の案件一覧へ。同じマスをもう一度押したら解除 */
+  const selectSlot = (day, hour) => {
+    const isSame = slot && slot.day === day && slot.hour === hour;
+    setSlot(isSame ? null : { day, hour });
+    if (!isSame) {
+      setListView("list");
+      listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const slotText = slot ? `${HEAT_DAYS[slot.day]}曜 ${slot.hour}時台` : "";
 
   /* ===== 集計 ===== */
   const summary = useMemo(() => {
@@ -1020,6 +1147,7 @@ const GeneralAnalysisPage = () => {
     normalizedProject,
     normalizedPartner,
     drill,
+    slot,
   ]);
 
   useEffect(() => {
@@ -1571,217 +1699,265 @@ const GeneralAnalysisPage = () => {
                   </div>
                 )}
 
-                <div className="ga-list-info">
-                  <span>
-                    {startIndex}–{endIndex} / {sortedRows.length.toLocaleString()} 件
-                  </span>
-                  <button
-                    type="button"
-                    className="ga-export-btn"
-                    onClick={handleExport}
-                    disabled={exporting || !sortedRows.length}
-                  >
-                    {exporting
-                      ? "作成中..."
-                      : `Excelに出力（${sortedRows.length.toLocaleString()}件）`}
-                  </button>
-                </div>
-
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onChange={handlePageChange}
-                />
-
-                {/* カード表示ではヘッダをクリックできないので、並び替えを別に出す */}
-                {isNarrow && (
-                  <div className="anken-sort">
-                    <label className="anken-sort__label">
-                      並び替え
-                      <select
-                        value={sortConfig.key || ""}
-                        onChange={(e) =>
-                          setSortConfig((prev) => ({
-                            ...prev,
-                            key: e.target.value || null,
-                          }))
-                        }
-                      >
-                        <option value="">指定なし</option>
-                        {HEADERS.map((h) => (
-                          <option key={h.key} value={h.key}>
-                            {h.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                {slot && (
+                  <div className="ga-drill">
+                    <span className="ga-drill__text">
+                      時間帯：<strong>{slotText}</strong> に稼働している案件で絞り込み中
+                    </span>
                     <button
                       type="button"
-                      className="anken-sort__order"
-                      onClick={() =>
-                        setSortConfig((prev) => ({
-                          ...prev,
-                          direction: prev.direction === "asc" ? "desc" : "asc",
-                        }))
-                      }
-                      disabled={!sortConfig.key}
+                      className="clear-btn"
+                      onClick={() => setSlot(null)}
                     >
-                      {sortConfig.direction === "asc" ? "▲ 昇順" : "▼ 降順"}
+                      解除
                     </button>
                   </div>
                 )}
 
-                {isNarrow ? (
-                  <div className="anken-cards">
-                    {pageRows.map((row) => (
-                      <div
-                        className={`anken-card ${contractTypeClass(row)}`}
-                        key={row["Id"]}
+                {/* 一覧とヒートマップの切り替え。どちらも上の絞り込みをそのまま使う */}
+                <div className="ga-view" role="tablist" aria-label="表示">
+                  {[
+                    { key: "list", label: "一覧" },
+                    { key: "heatmap", label: "時間帯" },
+                  ].map((view) => (
+                    <button
+                      key={view.key}
+                      type="button"
+                      role="tab"
+                      className={`ga-view__tab${listView === view.key ? " is-on" : ""}`}
+                      onClick={() => setListView(view.key)}
+                      aria-selected={listView === view.key}
+                    >
+                      {view.label}
+                    </button>
+                  ))}
+                </div>
+
+                {listView === "heatmap" ? (
+                  <WorkHeatmap
+                    grid={heatmap.grid}
+                    metric={heatMetric}
+                    onMetricChange={setHeatMetric}
+                    selected={slot}
+                    onSelect={selectSlot}
+                    excluded={heatmap.excluded}
+                    transpose={isNarrow}
+                  />
+                ) : (
+                  <>
+                    <div className="ga-list-info">
+                      <span>
+                        {startIndex}–{endIndex} / {sortedRows.length.toLocaleString()} 件
+                      </span>
+                      <button
+                        type="button"
+                        className="ga-export-btn"
+                        onClick={handleExport}
+                        disabled={exporting || !sortedRows.length}
                       >
-                        {/* 上段：主管・支店・区分・コマ・拘束。
-                            区分は大きさを他と揃え、色だけで見分けさせる */}
-                        <div className="anken-card__tags ga-card-top">
-                          <span className="anken-tag">
-                            {groupLabel(row["Group_FY22__c"]) || "主管不明"}
-                          </span>
-                          {row["Branch__c"] && (
-                            <span className="anken-tag">{row["Branch__c"]}</span>
-                          )}
-                          {row["Partner_Keiyaku_type_temp__c"] && (
-                            <span className={`anken-tag ga-type ${contractTypeClass(row)}`}>
-                              {row["Partner_Keiyaku_type_temp__c"]}
-                            </span>
-                          )}
-                          <span className="anken-tag">
-                            {row["KADO_YOTEI_NISSUU_AUTO__c"] || 0}コマ
-                          </span>
-                          <span className="anken-tag">
-                            拘束 {formatHours(workHours(row))}
-                          </span>
-                        </div>
+                        {exporting
+                          ? "作成中..."
+                          : `Excelに出力（${sortedRows.length.toLocaleString()}件）`}
+                      </button>
+                    </div>
 
-                        <div className="anken-card__head">
-                          <div className="anken-card__partner">
-                            {renderCell({ key: "Name" }, row)}
-                          </div>
-                          <div
-                            className={`anken-card__rate ${
-                              toNumber(row["Yotei_Arari_Keisan__c"]) < 0 ? "is-negative" : ""
-                            }`}
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onChange={handlePageChange}
+                    />
+
+                    {/* カード表示ではヘッダをクリックできないので、並び替えを別に出す */}
+                    {isNarrow && (
+                      <div className="anken-sort">
+                        <label className="anken-sort__label">
+                          並び替え
+                          <select
+                            value={sortConfig.key || ""}
+                            onChange={(e) =>
+                              setSortConfig((prev) => ({
+                                ...prev,
+                                key: e.target.value || null,
+                              }))
+                            }
                           >
-                            <span className="anken-card__rate-label">粗利率</span>
-                            {formatRate(grossMarginPct(row)) || "-"}
-                          </div>
-                        </div>
+                            <option value="">指定なし</option>
+                            {HEADERS.map((h) => (
+                              <option key={h.key} value={h.key}>
+                                {h.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button
+                          type="button"
+                          className="anken-sort__order"
+                          onClick={() =>
+                            setSortConfig((prev) => ({
+                              ...prev,
+                              direction: prev.direction === "asc" ? "desc" : "asc",
+                            }))
+                          }
+                          disabled={!sortConfig.key}
+                        >
+                          {sortConfig.direction === "asc" ? "▲ 昇順" : "▼ 降順"}
+                        </button>
+                      </div>
+                    )}
 
-                        <div className="anken-card__project">
-                          <span className="anken-card__label">パートナー</span>
-                          {renderCell({ key: "Partner__r.Name" }, row)}
-                        </div>
-
-                        {/* 「誰に聞けばよいか」はパートナー名の直後で見たいので、
-                            上段のタグ列ではなくここに置く */}
-                        <div className="anken-card__project ga-card-admin">
-                          <span className="anken-card__label">管理担当者</span>
-                          {row[ADMIN_KEY] || UNSET}
-                        </div>
-
-                        <div className="anken-card__money">
-                          {[
-                            { label: "売上/月", key: "Scheduled_sales_calculation__c" },
-                            { label: "原価/月", key: "Yotei_Genka_keisan__c" },
-                            { label: "粗利/月", key: "Yotei_Arari_Keisan__c" },
-                          ].map(({ label, key }) => (
-                            <div key={key}>
-                              <span className="anken-card__label">{label}</span>
-                              <span
-                                className={
-                                  key === "Yotei_Arari_Keisan__c" &&
-                                  toNumber(row[key]) < 0
-                                    ? "is-negative"
-                                    : ""
-                                }
-                              >
-                                {formatMoney(row[key]) || "-"}
+                    {isNarrow ? (
+                      <div className="anken-cards">
+                        {pageRows.map((row) => (
+                          <div
+                            className={`anken-card ${contractTypeClass(row)}`}
+                            key={row["Id"]}
+                          >
+                            {/* 上段：主管・支店・区分・コマ・拘束。
+                                区分は大きさを他と揃え、色だけで見分けさせる */}
+                            <div className="anken-card__tags ga-card-top">
+                              <span className="anken-tag">
+                                {groupLabel(row["Group_FY22__c"]) || "主管不明"}
                               </span>
-                              <span className="ga-sub">
-                                （{formatComputed(perDay(row, key), "/日")}）
+                              {row["Branch__c"] && (
+                                <span className="anken-tag">{row["Branch__c"]}</span>
+                              )}
+                              {row["Partner_Keiyaku_type_temp__c"] && (
+                                <span className={`anken-tag ga-type ${contractTypeClass(row)}`}>
+                                  {row["Partner_Keiyaku_type_temp__c"]}
+                                </span>
+                              )}
+                              <span className="anken-tag">
+                                {row["KADO_YOTEI_NISSUU_AUTO__c"] || 0}コマ
+                              </span>
+                              <span className="anken-tag">
+                                拘束 {formatHours(workHours(row))}
                               </span>
                             </div>
-                          ))}
-                        </div>
 
-                        <div className="ga-card-hourly">
-                          <span className="anken-card__label">売上/時</span>
-                          <span className="ga-card-hourly__value">
-                            {formatComputed(salesPerHour(row))}
-                          </span>
-                        </div>
-
-                        <div className="anken-card__start">
-                          {formatArea(row) || "稼働地不明"}
-                          <br />
-                          {row["OperationStartDate__c"] || "開始日不明"} 〜{" "}
-                          {formatEndDate(row["OperationEndDate__c"]) || "不明"}
-                          <br />
-                          {formatWorkingDays(row["WorkingDay__c"]) || "曜日不明"}{" "}
-                          {formatTime(row["OperationStartTime__c"])}
-                          {row["OperationEndTime__c"] &&
-                            `〜${formatTime(row["OperationEndTime__c"])}`}
-                        </div>
-
-                        {row["Haisyasinsei_komento__c"] && (
-                          <div className="anken-card__comment">
-                            {row["Haisyasinsei_komento__c"]}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="anken-table-scroll">
-                    <table className="anken-table">
-                      <thead>
-                        <tr>
-                          {HEADERS.map((h) => (
-                            <th
-                              key={h.key}
-                              className={`cell th-click ${h.w || ""} ${h.right ? "right" : ""}`}
-                              onClick={() => handleSort(h.key)}
-                              title="クリックで並び替え"
-                            >
-                              {h.label}
-                              {sortConfig.key === h.key &&
-                                (sortConfig.direction === "asc" ? " ▲" : " ▼")}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pageRows.map((row) => (
-                          <tr key={row["Id"]}>
-                            {HEADERS.map((h) => (
-                              <td
-                                key={h.key}
-                                className={`cell ${h.w || ""} ${
-                                  h.wrap ? "wrap" : "nowrap"
-                                } ${h.right ? "right" : ""}`}
+                            <div className="anken-card__head">
+                              <div className="anken-card__partner">
+                                {renderCell({ key: "Name" }, row)}
+                              </div>
+                              <div
+                                className={`anken-card__rate ${
+                                  toNumber(row["Yotei_Arari_Keisan__c"]) < 0 ? "is-negative" : ""
+                                }`}
                               >
-                                {renderCell(h, row)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                                <span className="anken-card__rate-label">粗利率</span>
+                                {formatRate(grossMarginPct(row)) || "-"}
+                              </div>
+                            </div>
 
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onChange={handlePageChange}
-                />
+                            <div className="anken-card__project">
+                              <span className="anken-card__label">パートナー</span>
+                              {renderCell({ key: "Partner__r.Name" }, row)}
+                            </div>
+
+                            {/* 「誰に聞けばよいか」はパートナー名の直後で見たいので、
+                                上段のタグ列ではなくここに置く */}
+                            <div className="anken-card__project ga-card-admin">
+                              <span className="anken-card__label">管理担当者</span>
+                              {row[ADMIN_KEY] || UNSET}
+                            </div>
+
+                            <div className="anken-card__money">
+                              {[
+                                { label: "売上/月", key: "Scheduled_sales_calculation__c" },
+                                { label: "原価/月", key: "Yotei_Genka_keisan__c" },
+                                { label: "粗利/月", key: "Yotei_Arari_Keisan__c" },
+                              ].map(({ label, key }) => (
+                                <div key={key}>
+                                  <span className="anken-card__label">{label}</span>
+                                  <span
+                                    className={
+                                      key === "Yotei_Arari_Keisan__c" &&
+                                      toNumber(row[key]) < 0
+                                        ? "is-negative"
+                                        : ""
+                                    }
+                                  >
+                                    {formatMoney(row[key]) || "-"}
+                                  </span>
+                                  <span className="ga-sub">
+                                    （{formatComputed(perDay(row, key), "/日")}）
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="ga-card-hourly">
+                              <span className="anken-card__label">売上/時</span>
+                              <span className="ga-card-hourly__value">
+                                {formatComputed(salesPerHour(row))}
+                              </span>
+                            </div>
+
+                            <div className="anken-card__start">
+                              {formatArea(row) || "稼働地不明"}
+                              <br />
+                              {row["OperationStartDate__c"] || "開始日不明"} 〜{" "}
+                              {formatEndDate(row["OperationEndDate__c"]) || "不明"}
+                              <br />
+                              {formatWorkingDays(row["WorkingDay__c"]) || "曜日不明"}{" "}
+                              {formatTime(row["OperationStartTime__c"])}
+                              {row["OperationEndTime__c"] &&
+                                `〜${formatTime(row["OperationEndTime__c"])}`}
+                            </div>
+
+                            {row["Haisyasinsei_komento__c"] && (
+                              <div className="anken-card__comment">
+                                {row["Haisyasinsei_komento__c"]}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="anken-table-scroll">
+                        <table className="anken-table">
+                          <thead>
+                            <tr>
+                              {HEADERS.map((h) => (
+                                <th
+                                  key={h.key}
+                                  className={`cell th-click ${h.w || ""} ${h.right ? "right" : ""}`}
+                                  onClick={() => handleSort(h.key)}
+                                  title="クリックで並び替え"
+                                >
+                                  {h.label}
+                                  {sortConfig.key === h.key &&
+                                    (sortConfig.direction === "asc" ? " ▲" : " ▼")}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pageRows.map((row) => (
+                              <tr key={row["Id"]}>
+                                {HEADERS.map((h) => (
+                                  <td
+                                    key={h.key}
+                                    className={`cell ${h.w || ""} ${
+                                      h.wrap ? "wrap" : "nowrap"
+                                    } ${h.right ? "right" : ""}`}
+                                  >
+                                    {renderCell(h, row)}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onChange={handlePageChange}
+                    />
+                  </>
+                )}
               </>
             )}
           </>
