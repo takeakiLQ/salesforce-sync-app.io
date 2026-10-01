@@ -1883,7 +1883,7 @@ const GeneralAnalysisPage = () => {
                 <div className="ga-view" role="tablist" aria-label="表示">
                   {[
                     { key: "list", label: "一覧" },
-                    { key: "heatmap", label: "時間帯" },
+                    { key: "heatmap", label: "時間帯（ヒートマップ）" },
                   ].map((view) => (
                     <button
                       key={view.key}
