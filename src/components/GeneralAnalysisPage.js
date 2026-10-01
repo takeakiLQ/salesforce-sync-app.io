@@ -207,6 +207,47 @@ const BREAKDOWN_METRICS = [
   { key: "profit", label: "粗利/月" },
 ];
 
+/**
+ * rows を dimensionKey の値ごとに集計し、metric の大きい順に並べる。
+ * 画面の内訳と Excel の内訳シートで同じ数字になるよう、ここだけで計算する。
+ */
+const aggregateBreakdown = (rows, dimensionKey, metric) => {
+  const map = new Map();
+  rows.forEach((row) => {
+    const value = cellValue(row, dimensionKey);
+    const entry = map.get(value) || {
+      value,
+      count: 0,
+      slots: 0,
+      sales: 0,
+      profit: 0,
+    };
+    entry.count += 1;
+    entry.slots += toNumber(row["KADO_YOTEI_NISSUU_AUTO__c"]);
+    entry.sales += toNumber(row["Scheduled_sales_calculation__c"]);
+    entry.profit += toNumber(row["Yotei_Arari_Keisan__c"]);
+    map.set(value, entry);
+  });
+
+  const total = rows.reduce(
+    (sum, row) => {
+      sum.count += 1;
+      sum.sales += toNumber(row["Scheduled_sales_calculation__c"]);
+      sum.profit += toNumber(row["Yotei_Arari_Keisan__c"]);
+      return sum;
+    },
+    { count: 0, sales: 0, profit: 0 }
+  );
+
+  return Array.from(map.values())
+    .map((entry) => ({
+      ...entry,
+      margin: entry.sales ? (entry.profit / entry.sales) * 100 : NaN,
+      share: total[metric] ? entry[metric] / total[metric] : 0,
+    }))
+    .sort((a, b) => b[metric] - a[metric]);
+};
+
 /** 市区町村など、値の種類が多い切り口で既定に出す行数 */
 const BREAKDOWN_LIMIT = 20;
 
@@ -393,6 +434,45 @@ const EXPORT_COLUMNS = [
   // 別の表と突き合わせるときの鍵
   { header: "案件ID", width: 20, value: (row) => row["Id"] || "" },
 ];
+
+/** 内訳1切り口ぶんのシート。最終行に合計を付ける */
+const breakdownSheet = (dimension, rows, metric) => {
+  const entries = aggregateBreakdown(rows, dimension.key, metric);
+  const sum = (field) => entries.reduce((acc, entry) => acc + entry[field], 0);
+  const sales = sum("sales");
+  const profit = sum("profit");
+
+  return {
+    name: `内訳_${dimension.label}`,
+    columns: [
+      { header: dimension.label, width: 20, wrap: true },
+      { header: "件数", width: 8, numFmt: MONEY },
+      { header: "コマ", width: 9, numFmt: MONEY },
+      { header: "売上/月", width: 14, numFmt: MONEY },
+      { header: "粗利/月", width: 14, numFmt: MONEY },
+      { header: "粗利率", width: 8, numFmt: "0.0%" },
+      { header: "構成比", width: 8, numFmt: "0.0%" },
+    ],
+    rows: entries.map((entry) => [
+      (dimension.format && dimension.format(entry.value)) || entry.value,
+      entry.count,
+      entry.slots,
+      entry.sales,
+      entry.profit,
+      entry.margin / 100,
+      entry.share,
+    ]),
+    totalRow: [
+      "合計",
+      sum("count"),
+      sum("slots"),
+      sales,
+      profit,
+      sales ? profit / sales : null,
+      entries.length ? 1 : null,
+    ],
+  };
+};
 
 /** 並び替え用の比較キー。列の型ごとに数値／日時／文字列へ寄せる */
 const sortValue = (row, header) => {
@@ -878,45 +958,10 @@ const GeneralAnalysisPage = () => {
   /* ===== 内訳（集計） =====
      絞り込んだ結果に対して集計する。主管＋支店で絞ってから市区町村で切る、
      といった掘り下げ方を想定している。 */
-  const breakdown = useMemo(() => {
-    const dimension = BREAKDOWN_DIMENSIONS.find((d) => d.key === breakdownKey);
-    if (!dimension) return [];
-
-    const map = new Map();
-    filteredRows.forEach((row) => {
-      const value = cellValue(row, dimension.key);
-      const entry = map.get(value) || {
-        value,
-        count: 0,
-        slots: 0,
-        sales: 0,
-        profit: 0,
-      };
-      entry.count += 1;
-      entry.slots += toNumber(row["KADO_YOTEI_NISSUU_AUTO__c"]);
-      entry.sales += toNumber(row["Scheduled_sales_calculation__c"]);
-      entry.profit += toNumber(row["Yotei_Arari_Keisan__c"]);
-      map.set(value, entry);
-    });
-
-    const total = filteredRows.reduce(
-      (sum, row) => {
-        sum.count += 1;
-        sum.sales += toNumber(row["Scheduled_sales_calculation__c"]);
-        sum.profit += toNumber(row["Yotei_Arari_Keisan__c"]);
-        return sum;
-      },
-      { count: 0, sales: 0, profit: 0 }
-    );
-
-    return Array.from(map.values())
-      .map((entry) => ({
-        ...entry,
-        margin: entry.sales ? (entry.profit / entry.sales) * 100 : NaN,
-        share: total[breakdownMetric] ? entry[breakdownMetric] / total[breakdownMetric] : 0,
-      }))
-      .sort((a, b) => b[breakdownMetric] - a[breakdownMetric]);
-  }, [filteredRows, breakdownKey, breakdownMetric]);
+  const breakdown = useMemo(
+    () => aggregateBreakdown(filteredRows, breakdownKey, breakdownMetric),
+    [filteredRows, breakdownKey, breakdownMetric]
+  );
 
   const breakdownMax = breakdown.length ? breakdown[0][breakdownMetric] : 0;
   const breakdownRows = showAllBreakdown ? breakdown : breakdown.slice(0, BREAKDOWN_LIMIT);
@@ -1005,6 +1050,9 @@ const GeneralAnalysisPage = () => {
     }
   };
 
+  const metricLabel =
+    BREAKDOWN_METRICS.find((m) => m.key === breakdownMetric)?.label || "件数";
+
   const describeConditions = (now) => {
     const joinOr = (values, format = (v) => v) =>
       values.length ? values.map((v) => format(v) || v).join("、") : "指定なし";
@@ -1038,6 +1086,11 @@ const GeneralAnalysisPage = () => {
           : "指定なし（シートの並び）",
       ],
       ["件数", sortedRows.length],
+      [
+        "内訳シート",
+        `${filteredRows.length.toLocaleString()}件を集計（内訳からの絞り込みは含めない）。` +
+          `${metricLabel}の大きい順で、構成比も${metricLabel}の比率`,
+      ],
     ];
   };
 
@@ -1055,6 +1108,11 @@ const GeneralAnalysisPage = () => {
             columns: EXPORT_COLUMNS,
             rows: sortedRows.map((row) => EXPORT_COLUMNS.map((c) => c.value(row))),
           },
+          // 内訳は切り口ごとに1シート。画面と同じく内訳からの絞り込みは効かせず、
+          // 上位20件で切らずに全件を出す
+          ...BREAKDOWN_DIMENSIONS.map((dimension) =>
+            breakdownSheet(dimension, filteredRows, breakdownMetric)
+          ),
           {
             name: "出力条件",
             table: false,
