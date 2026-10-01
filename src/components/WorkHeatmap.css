@@ -1,5 +1,5 @@
 /* 曜日×時間帯のヒートマップ（WorkHeatmap.js）
-   色は WorkHeatmap.js の COLOR_STOPS と揃える（凡例の帯もここで同じ3色を使う） */
+   マスと凡例の色は WorkHeatmap.js の PALETTES から inline で付ける */
 
 .wh {
   margin-top: 12px;
@@ -9,9 +9,130 @@
   border-radius: var(--radius-sm);
 }
 
+.wh__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
 .wh__metric {
   display: flex;
   gap: 6px;
+}
+
+/* まとめて表示／区分ごとに表示 */
+.wh__seg {
+  display: inline-flex;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.wh__seg button {
+  min-height: 34px;
+  padding: 4px 14px;
+  background: #fff;
+  border: none;
+  color: #4b5563;
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+
+.wh__seg button + button {
+  border-left: 1px solid #d0d5dd;
+}
+
+.wh__seg button.is-on {
+  background: #0b3142;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 時間帯区分のカード */
+.wh__cats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.wh-cat {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: var(--radius-sm);
+  color: #9ca3af;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.wh-cat.is-on {
+  background: #fff;
+  color: #111827;
+}
+
+.wh-cat:disabled {
+  cursor: default;
+}
+
+.wh-cat__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+.wh-cat__count {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.wh-cat__desc {
+  grid-column: 1 / -1;
+  font-size: var(--fs-xs);
+  color: #6b7280;
+}
+
+.wh-cat:not(.is-on) .wh-cat__desc {
+  color: #9ca3af;
+}
+
+/* 1枚分。区分ごとに表示したときは縦に並ぶ */
+.wh-block + .wh-block {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.wh-block__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: var(--fs-md);
+  color: #111827;
+}
+
+.wh-block__desc {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.wh-block__swatch {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
 }
 
 .wh__stats {
@@ -150,7 +271,6 @@
   width: 180px;
   height: 10px;
   border-radius: 2px;
-  background: linear-gradient(to right, #d3ebea, #1b8a8c, #0b3142);
 }
 
 .wh__legend-note {
@@ -167,6 +287,10 @@
 @media (max-width: 768px) {
   .wh {
     padding: 12px;
+  }
+
+  .wh__cats {
+    grid-template-columns: 1fr;
   }
 
   .wh__stat strong {

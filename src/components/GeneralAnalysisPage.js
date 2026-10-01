@@ -20,7 +20,7 @@ import ConfirmLink from "./ConfirmLink";
 import Pagination from "./Pagination";
 import ScrollTopButton from "./ScrollTopButton";
 import PullToRefresh from "./PullToRefresh";
-import WorkHeatmap, { HEAT_DAYS } from "./WorkHeatmap";
+import WorkHeatmap, { HEAT_CATEGORIES, HEAT_DAYS } from "./WorkHeatmap";
 import { cachedRowsUpdatedAt, fetchSheetRows, isAuthError } from "../utils/sheetsApi";
 import { formatDateTime, syncSheetCaches } from "../utils/updatedAtApi";
 import {
@@ -198,6 +198,22 @@ const workSlots = (row) => {
 };
 
 const slotKey = (day, hour) => `${day}-${hour}`;
+
+const ALL_CATEGORIES = HEAT_CATEGORIES.map((cat) => cat.key);
+
+/**
+ * 時間帯区分。正午を境に「午前のみ／午前午後またぎ／午後のみ」。
+ * 夜に始まり0時をまたぐ案件は、始まりが午後なので「午後のみ」に入れる。
+ * 時刻が欠けていれば null。
+ */
+const timeCategory = (row) => {
+  const start = parseHours(row["OperationStartTime__c"]);
+  const span = workHours(row);
+  if (!Number.isFinite(start) || !Number.isFinite(span)) return null;
+  if (start + span <= 12) return "am";
+  if (start >= 12) return "pm";
+  return "span";
+};
 
 /**
  * [曜日7][時24] の { count, partners, hours }。
@@ -811,7 +827,11 @@ const GeneralAnalysisPage = () => {
   // 一覧の代わりに曜日×時間帯のヒートマップを出すか。開くたびに一覧から始める
   const [listView, setListView] = useState("list");
   const [heatMetric, setHeatMetric] = useState("count");
-  // ヒートマップのマスを押したときの絞り込み。{ day, hour }
+  // ヒートマップに含める時間帯区分と、区分ごとに表を分けるか
+  const [heatCats, setHeatCats] = useState(ALL_CATEGORIES);
+  const [heatSplit, setHeatSplit] = useState(false);
+  // ヒートマップのマスを押したときの絞り込み。{ day, hour, cats }
+  // cats は押したときの時間帯区分。一覧にも同じ区分で絞り込みをかける
   const [slot, setSlot] = useState(null);
 
   useDebouncedSave(FILTER_CACHE_KEY, {
@@ -1082,12 +1102,64 @@ const GeneralAnalysisPage = () => {
    */
   const heatmap = useMemo(() => buildHeatmap(drilledRows, slotsOf), [drilledRows, slotsOf]);
 
+  const categoryByRow = useMemo(
+    () => new Map(filteredRows.map((row) => [row, timeCategory(row)])),
+    [filteredRows]
+  );
+
+  const categoryCounts = useMemo(() => {
+    const counts = {};
+    drilledRows.forEach((row) => {
+      const cat = categoryByRow.get(row);
+      if (cat) counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [drilledRows, categoryByRow]);
+
+  /** 画面に出す表。まとめて表示なら選んだ区分を合算した1枚、区分ごとなら区分の数だけ */
+  const heatBlocks = useMemo(() => {
+    const rowsIn = (cats) => drilledRows.filter((row) => cats.includes(categoryByRow.get(row)));
+    if (!heatSplit) {
+      const rows = rowsIn(heatCats);
+      return [
+        {
+          key: "all",
+          palette: "teal",
+          cats: heatCats,
+          total: rows.length,
+          grid: buildHeatmap(rows, slotsOf).grid,
+        },
+      ];
+    }
+    return HEAT_CATEGORIES.filter((cat) => heatCats.includes(cat.key)).map((cat) => {
+      const rows = rowsIn([cat.key]);
+      return {
+        key: cat.key,
+        title: cat.label,
+        desc: cat.desc,
+        palette: cat.palette,
+        cats: [cat.key],
+        total: rows.length,
+        grid: buildHeatmap(rows, slotsOf).grid,
+      };
+    });
+  }, [drilledRows, categoryByRow, heatCats, heatSplit, slotsOf]);
+
+  /** 区分を含める／外す。最後の1つは外さない（何も出なくなるため） */
+  const toggleHeatCat = (key) =>
+    setHeatCats((prev) => {
+      if (!prev.includes(key)) return ALL_CATEGORIES.filter((k) => k === key || prev.includes(k));
+      return prev.length > 1 ? prev.filter((k) => k !== key) : prev;
+    });
+
   /** 明細と件数に使う行。ヒートマップのマスを選んでいれば、その時間帯に稼働する案件だけ */
   const listRows = useMemo(() => {
     if (!slot) return drilledRows;
     const key = slotKey(slot.day, slot.hour);
-    return drilledRows.filter((row) => slotsOf(row)?.has(key));
-  }, [drilledRows, slot, slotsOf]);
+    return drilledRows.filter(
+      (row) => slotsOf(row)?.has(key) && slot.cats.includes(categoryByRow.get(row))
+    );
+  }, [drilledRows, slot, slotsOf, categoryByRow]);
 
   // 絞り込みや内訳が変わったら、時間帯の選択は解除する（内訳からの絞り込みと同じ理由）
   useEffect(() => {
@@ -1108,16 +1180,29 @@ const GeneralAnalysisPage = () => {
   }, [slot, listRows]);
 
   /** マスを押したら、その時間帯の案件一覧へ。同じマスをもう一度押したら解除 */
-  const selectSlot = (day, hour) => {
-    const isSame = slot && slot.day === day && slot.hour === hour;
-    setSlot(isSame ? null : { day, hour });
+  const selectSlot = (day, hour, cats) => {
+    const isSame =
+      slot &&
+      slot.day === day &&
+      slot.hour === hour &&
+      slot.cats.length === cats.length &&
+      slot.cats.every((key) => cats.includes(key));
+    setSlot(isSame ? null : { day, hour, cats });
     if (!isSame) {
       setListView("list");
       listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
-  const slotText = slot ? `${HEAT_DAYS[slot.day]}曜 ${slot.hour}時台` : "";
+  // 区分を絞っているときだけ、どの区分かを添える
+  const slotText = slot
+    ? `${HEAT_DAYS[slot.day]}曜 ${slot.hour}時台` +
+      (slot.cats.length < ALL_CATEGORIES.length
+        ? `（${HEAT_CATEGORIES.filter((cat) => slot.cats.includes(cat.key))
+            .map((cat) => cat.label)
+            .join("・")}）`
+        : "")
+    : "";
 
   /* ===== 集計 ===== */
   const summary = useMemo(() => {
@@ -1283,7 +1368,7 @@ const GeneralAnalysisPage = () => {
       [
         "時間帯シート",
         `${drilledRows.length.toLocaleString()}件をもとに、各時間帯に稼働している案件数・パートナー数` +
-          "（時間帯での絞り込みは含めない）。0時をまたぐ分は翌日の曜日に数え、祝日は含まない。" +
+          "（時間帯・時間帯区分での絞り込みは含めない）。0時をまたぐ分は翌日の曜日に数え、祝日は含まない。" +
           (heatmap.excluded
             ? `曜日・稼働時刻が登録されていないか祝日のみの${heatmap.excluded.toLocaleString()}件は数えていない`
             : ""),
@@ -1815,13 +1900,17 @@ const GeneralAnalysisPage = () => {
 
                 {listView === "heatmap" ? (
                   <WorkHeatmap
-                    grid={heatmap.grid}
+                    blocks={heatBlocks}
                     metric={heatMetric}
                     onMetricChange={setHeatMetric}
+                    categoryCounts={categoryCounts}
+                    selectedCats={heatCats}
+                    onToggleCat={toggleHeatCat}
+                    split={heatSplit}
+                    onSplitChange={setHeatSplit}
                     selected={slot}
                     onSelect={selectSlot}
                     excluded={heatmap.excluded}
-                    total={drilledRows.length}
                     transpose={isNarrow}
                   />
                 ) : (
